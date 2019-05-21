@@ -19,7 +19,7 @@
         <dependency>
             <groupId>chenyu</groupId>
             <artifactId>Zql</artifactId>
-            <version>1</version>
+            <version>1.0.0</version>
         </dependency>
 
                 <!-- https://mvnrepository.com/artifact/jline/jline -->

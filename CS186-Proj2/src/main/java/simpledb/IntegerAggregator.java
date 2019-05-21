@@ -54,7 +54,7 @@ public class IntegerAggregator implements Aggregator {
             tempTypes[0] = tempDesc.getFieldType(afield);
         }else{
             tempNames[0] = tempDesc.getFieldName(gbfield);
-            tempTypes[0] = tempDesc.getFieldType(gbfield);
+            tempTypes[0] = gbfieType;
 
             tempNames[1] = tempDesc.getFieldName(afield);
             tempTypes[1] = tempDesc.getFieldType(afield);
