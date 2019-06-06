@@ -102,7 +102,22 @@ public class HeapFile implements DbFile {
     // see DbFile.java for javadocs
     public void writePage(Page page) throws IOException {
         // some code goes here
-        // not necessary for proj1
+        try{
+            RandomAccessFile rf = new RandomAccessFile(f,"rw");
+
+            int offset = page.getId().pageNumber() * BufferPool.PAGE_SIZE;
+            rf.seek(offset);
+
+            //read data
+            rf.write(page.getPageData());
+            
+            rf.close();
+
+        }catch (IOException e){
+            //throw new IOException("fail read page!");
+            e.printStackTrace();
+        }
+        
     }
 
     /**
@@ -113,20 +128,60 @@ public class HeapFile implements DbFile {
         return (int)(f.length() / BufferPool.PAGE_SIZE);
     }
 
+
+
     // see DbFile.java for javadocs
     public ArrayList<Page> insertTuple(TransactionId tid, Tuple t)
             throws DbException, IOException, TransactionAbortedException {
         // some code goes here
-        return null;
-        // not necessary for proj1
+        ArrayList<Page> affectPages = new ArrayList<Page>();
+        if (t == null) return affectPages;
+        
+        int numPages = numPages();
+        boolean pageFull = true;
+        int i = 0;
+        //文件里的页不为0，返回受到影响的page
+        for (; i < numPages; i++) {
+            PageId pageId = new HeapPageId(getId(), i);
+            HeapPage page = (HeapPage)Database.getBufferPool().getPage(tid, pageId, Permissions.READ_WRITE);
+            if (page.getNumEmptySlots() != 0) {    
+                page.insertTuple(t);
+                page.markDirty(true, tid);
+                affectPages.add(page);
+                writePage(page);
+                pageFull = false;
+                break;
+            }
+        }
+
+        if (numPages == 0 || pageFull) {
+            //文件里含的页为0，所以需要创建一个page
+            PageId pageId = new HeapPageId(getId(), i);
+            HeapPage newPage = new HeapPage((HeapPageId)pageId, new byte[BufferPool.PAGE_SIZE]);
+            newPage.insertTuple(t); 
+            newPage.markDirty(true, tid);
+            writePage(newPage);
+            affectPages.add(newPage);
+        }
+
+        return affectPages;
     }
 
     // see DbFile.java for javadocs
-    public Page deleteTuple(TransactionId tid, Tuple t) throws DbException,
-            TransactionAbortedException {
-        // some code goes here
-        return null;
-        // not necessary for proj1
+    public Page deleteTuple(TransactionId tid, Tuple t) throws DbException,TransactionAbortedException {
+
+        if (t == null) return null;
+
+        int numPages = numPages();
+
+        HeapPage page = null;
+        
+        page = (HeapPage)Database.getBufferPool().getPage(tid, t.getRecordId().getPageId(), Permissions.READ_WRITE);
+        page.deleteTuple(t);
+        page.markDirty(true, tid);
+        
+        return page;
+
     }
 
     // see DbFile.java for javadocs
