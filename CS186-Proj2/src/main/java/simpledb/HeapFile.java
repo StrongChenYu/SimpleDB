@@ -187,63 +187,65 @@ public class HeapFile implements DbFile {
     // see DbFile.java for javadocs
     public DbFileIterator iterator(TransactionId tid) {
         // some code goes here
-        return new FileIterator(tid);
+        return new FileIterator(tid, numPages());
 
     }
 
     public class FileIterator implements DbFileIterator {
-        private ArrayList<Tuple> tuples = null;
-        private int totalLen = 0;
-        private int index = 0;
+        private int numpages;
+        private int pageIndex;
         private TransactionId tid = null;
+        private Iterator<Tuple> tempiter;
 
-        public FileIterator(TransactionId tid){
+        public FileIterator(TransactionId tid, int numPages){
+            this.numpages = numPages;
+            this.pageIndex = 0;
             this.tid = tid;
+            this.tempiter = null;
         }
 
         public void open() throws DbException, TransactionAbortedException {
-            this.tuples = new ArrayList<Tuple>();
-
-            for (int i = 0; i < numPages(); i++){
-                HeapPageId pid = new HeapPageId(getId(),i);
-                
-                //read page from BufferPool
-                HeapPage tempPage = (HeapPage) Database.getBufferPool().getPage(tid,pid,null);
-                
-                //add iterator
-                Iterator<Tuple> iter = tempPage.iterator();
-                while (iter.hasNext()){
-                    tuples.add(iter.next());
-                }
-            }  
-
-            totalLen = tuples.size();
+            if (numpages == 0) throw new DbException("file don't any page!");
+            pageIndex = 0;
+            tempiter = getTuplesInPage();
         }
 
         public boolean hasNext() throws DbException, TransactionAbortedException{
-            if (index >= totalLen) return false;
-            return true;
+            if (tempiter == null) return false;
+            if (tempiter.hasNext()){
+                return true;
+            }
+            return false;
         }
 
         public Tuple next() throws DbException, TransactionAbortedException, NoSuchElementException {
-            if (!hasNext()) {
-                throw new NoSuchElementException();
+            if (tempiter == null) throw new NoSuchElementException("iterate wrong!");
+            Tuple tempTup = tempiter.next();
+            if (!tempiter.hasNext()) {
+                pageIndex++;
+                tempiter = getTuplesInPage();
             }
-
-            return tuples.get(index++);
+            return tempTup;
         }
 
         public void rewind() throws DbException, TransactionAbortedException {
-            index = 0;
+            open();
         }
 
         public void close() {
-            tuples = null;
-            totalLen = 0;
-            index = 0;
+            this.pageIndex = 0;
+            this.tempiter = null;
         }
 
-    }
+        public Iterator<Tuple> getTuplesInPage() throws TransactionAbortedException, DbException {
+            if (pageIndex > numpages - 1) {
+                return null;
+            }
 
+            HeapPageId pid = new HeapPageId(getId(),pageIndex);
+            HeapPage page = (HeapPage) Database.getBufferPool().getPage(tid, pid, Permissions.READ_ONLY);
+            return page.iterator();
+        }
+    }
 }
 

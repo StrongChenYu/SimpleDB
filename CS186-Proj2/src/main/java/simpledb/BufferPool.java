@@ -28,7 +28,7 @@ public class BufferPool {
      */
 
     private int numPages;
-    private HashMap<PageId,Page> pageBuffers;
+    private LRUCache pageCache;
     private int MAX_CAPACITY;
 
 
@@ -36,7 +36,9 @@ public class BufferPool {
         // some code goes here
         this.numPages = numPages;
         this.MAX_CAPACITY = numPages;
-        pageBuffers = new HashMap<PageId,Page>(MAX_CAPACITY);
+        
+        //use LinkedHashMap implement the lRU Algorithm
+        pageCache = new LRUCache(MAX_CAPACITY);
     }
 
     /**
@@ -57,22 +59,13 @@ public class BufferPool {
     public Page getPage(TransactionId tid, PageId pid, Permissions perm)
         throws TransactionAbortedException, DbException {
         // some code goes here
-        Page tempPage = pageBuffers.get(pid);
+        Page tempPage = pageCache.get(pid);
         if(tempPage != null){
             return tempPage;
         }else{
             HeapFile file = (HeapFile)Database.getCatalog().getDbFile(pid.getTableId());
             Page pageRead = (HeapPage)file.readPage(pid);
-
-            if (pageBuffers.size() == MAX_CAPACITY){
-                //这里实现替换policy
-                //如果达到了最大的容量就进行替换
-                throw new DbException("can't reach");
-            }else{
-                pageBuffers.put(pid,pageRead);
-            }
-
-
+            pageCache.put(pid,pageRead);
             return pageRead;
         }        
     }
@@ -173,8 +166,11 @@ public class BufferPool {
      */
     public synchronized void flushAllPages() throws IOException {
         // some code goes here
-        // not necessary for proj1
+        List<PageId> pageIds = new ArrayList<>(pageCache.getMap().keySet());
 
+        for (PageId pageId : pageIds) {
+            flushPage(pageId);
+        }
     }
 
     /** Remove the specific page id from the buffer pool.
@@ -192,8 +188,13 @@ public class BufferPool {
      * @param pid an ID indicating the page to flush
      */
     private synchronized  void flushPage(PageId pid) throws IOException {
-        // some code goes here
-        // not necessary for proj1
+        Page page = pageCache.get(pid);
+        TransactionId tid = page.isDirty();
+        if (tid != null){
+            DbFile file = Database.getCatalog().getDbFile(pid.getTableId());
+            page.markDirty(false, tid);
+            file.writePage(page);
+        }
     }
 
     /** Write all pages of the specified transaction to disk.

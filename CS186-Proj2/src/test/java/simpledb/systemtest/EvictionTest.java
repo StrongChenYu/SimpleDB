@@ -28,9 +28,9 @@ public class EvictionTest extends SimpleDbTestBase {
         long beginMem = SystemTestUtil.getMemoryFootprint();
         SeqScan scan = new SeqScan(null, f.getId(), "");
         scan.open();
-        while (scan.hasNext()) {
-            scan.next();
-        }
+        // while (scan.hasNext()) {
+        //     scan.next();
+        // }
         System.out.println("EvictionTest scan complete, testing memory usage of scan");
         long endMem = SystemTestUtil.getMemoryFootprint();
         long memDiff = (endMem - beginMem) / (1<<20);
