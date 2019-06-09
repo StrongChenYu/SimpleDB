@@ -166,7 +166,7 @@ public class BufferPool {
      */
     public synchronized void flushAllPages() throws IOException {
         // some code goes here
-        List<PageId> pageIds = new ArrayList<>(pageCache.getMap().keySet());
+        List<PageId> pageIds = new ArrayList<PageId>(pageCache.getMap().keySet());
 
         for (PageId pageId : pageIds) {
             flushPage(pageId);

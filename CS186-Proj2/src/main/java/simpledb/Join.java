@@ -122,7 +122,7 @@ public class Join extends Operator {
     private Iterator<Tuple> getAllFetchNext() throws TransactionAbortedException, DbException {
         int tpSize1 = child1.getTupleDesc().numFields();
         int tpSize2 = child2.getTupleDesc().numFields();
-        ArrayList<Tuple> tempTps = new ArrayList<>();
+        ArrayList<Tuple> tempTps = new ArrayList<Tuple>();
         
         while (child1.hasNext()){
             Tuple tp1 = child1.next();

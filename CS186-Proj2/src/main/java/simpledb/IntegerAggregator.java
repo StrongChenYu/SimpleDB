@@ -35,8 +35,8 @@ public class IntegerAggregator implements Aggregator {
         this.gbfieType = gbfieldtype;
         this.afield = afield;
         this.what = what;
-        this.afieldNum = new HashMap<>();
-        this.gbFieldNum = new HashMap<>();
+        this.afieldNum = new HashMap<Field, Integer>();
+        this.gbFieldNum = new HashMap<Field, Integer>();
     }
 
     private TupleDesc createFlowTupleDesc(Tuple tup){
@@ -145,7 +145,7 @@ public class IntegerAggregator implements Aggregator {
      *         the constructor.
      */
     public DbIterator iterator() {
-        ArrayList<Tuple> tempList = new ArrayList<>();
+        ArrayList<Tuple> tempList = new ArrayList<Tuple>();
         for (Map.Entry<Field, Integer> entry : afieldNum.entrySet()) {
             Tuple tempTup = new Tuple(AggDesc);
             Field gField = entry.getKey();

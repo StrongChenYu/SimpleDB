@@ -144,7 +144,7 @@ public class Catalog {
 
     public Iterator<Integer> tableIdIterator() {
         // some code goes here
-        return null;
+        return intHash.keySet().iterator();
     }
 
     public String getTableName(int id) {
@@ -164,7 +164,8 @@ public class Catalog {
      */
     public void loadSchema(String catalogFile) {
         String line = "";
-        String baseFolder=new File(catalogFile).getParent();
+        String path = new File(catalogFile).getAbsolutePath();
+        String baseFolder=new File(path).getParent();
         try {
             BufferedReader br = new BufferedReader(new FileReader(new File(catalogFile)));
             
@@ -202,6 +203,8 @@ public class Catalog {
                 TupleDesc t = new TupleDesc(typeAr, namesAr);
                 HeapFile tabHf = new HeapFile(new File(baseFolder+"/"+name + ".dat"), t);
                 addTable(tabHf,name,primaryKey);
+                //outPutFile(tabHf);
+                System.out.println(baseFolder+"/"+name + ".dat");
                 System.out.println("Added table : " + name + " with schema " + t);
             }
         } catch (IOException e) {
@@ -210,6 +213,24 @@ public class Catalog {
         } catch (IndexOutOfBoundsException e) {
             System.out.println ("Invalid catalog entry : " + line);
             System.exit(0);
+        }
+    }
+
+    public void outPutFile(HeapFile table){
+        TransactionId tid = new TransactionId();
+        SeqScan f = new SeqScan(tid, table.getId());
+        
+        try {
+            // and run it
+            f.open();
+            while (f.hasNext()) {
+                Tuple tup = f.next();
+                System.out.println(tup);
+            }
+            f.close();
+            Database.getBufferPool().transactionComplete(tid);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 }

@@ -8,7 +8,7 @@ public class LRUCache {
     private final int MAX_CAPACITY;
 
     public LRUCache(int capacity) {
-        this.map = new HashMap<>();
+        this.map = new HashMap<PageId, Page>();
         this.lruList = new LRUList(capacity);
         this.MAX_CAPACITY = capacity;
     }

@@ -1,0 +1,32 @@
+{
+    "configurations": [
+        {
+            "type": "java",
+            "name": "CodeLens (Launch) - SimpleDb",
+            "request": "launch",
+            "mainClass": "simpledb.SimpleDb",
+            "projectName": "CS186-Proj2"
+        },
+        {
+            "type": "java",
+            "name": "CodeLens (Launch) - test",
+            "request": "launch",
+            "mainClass": "simpledb.test",
+            "projectName": "CS186-Proj2"
+        },
+        {
+            "type": "java",
+            "name": "CodeLens (Launch) - test",
+            "request": "launch",
+            "mainClass": "simpledb.test",
+            "projectName": "CS186-Proj1"
+        },
+        {
+            "type": "java",
+            "name": "CodeLens (Launch) - JoinTest",
+            "request": "launch",
+            "mainClass": "simpledb.JoinTest",
+            "projectName": "CS186-Proj2"
+        }
+    ]
+}

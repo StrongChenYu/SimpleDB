@@ -2,7 +2,7 @@ package simpledb;
 import java.io.*;
 
 public class SimpleDb {
-    public static void main (String args[])
+    public static void testMain (String args[])
             throws DbException, TransactionAbortedException, IOException {
         // convert a file
         if(args[0].equals("convert")) {
@@ -94,6 +94,11 @@ public class SimpleDb {
             System.err.println("Unknown command: " + args[0]);
             System.exit(1);
         }
+    }
+
+    public static void main(String[] args) throws DbException, TransactionAbortedException, IOException {
+        String[] arg = {"parser","dblp_simpledb.schema"};
+        testMain(arg);
     }
 
 }

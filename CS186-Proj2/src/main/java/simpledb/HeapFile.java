@@ -205,7 +205,10 @@ public class HeapFile implements DbFile {
         }
 
         public void open() throws DbException, TransactionAbortedException {
-            if (numpages == 0) throw new DbException("file don't any page!");
+            if (numpages == 0){
+                tempiter = null;
+                return;
+            }
             pageIndex = 0;
             tempiter = getTuplesInPage();
         }

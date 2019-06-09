@@ -5,8 +5,8 @@
     <artifactId>CS186-Proj2</artifactId>
     <version>1.0-SNAPSHOT</version>
     <properties>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
+        <maven.compiler.source>1.6</maven.compiler.source>
+        <maven.compiler.target>1.6</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
     <dependencies>
@@ -26,15 +26,22 @@
         </dependency>
 
         <dependency>
-            <groupId>Zql</groupId>
+            <groupId>chenyu</groupId>
             <artifactId>Zql</artifactId>
             <version>1.0.0</version>
-            <scope>system</scope>
-            <systemPath>${project.basedir}/src/main/resources/lib/zql.jar</systemPath>
         </dependency>
 
     </dependencies>
     <build>
+        <resources>
+            <resource>
+                <targetPath>lib/</targetPath>
+                <directory>${basedir}/lib</directory>
+                <includes>
+                    <include>*.jar</include>
+                </includes>
+            </resource>
+        </resources>
         <pluginManagement>
             <plugins>
                 <plugin>
@@ -58,6 +65,26 @@
                         <includeTestSourceDirectory>true</includeTestSourceDirectory>
                     </configuration>
                 </plugin>
+
+
+                <plugin>
+                    <artifactId>maven-assembly-plugin</artifactId>
+                    <version>3.1.0</version>
+                    <configuration>
+                    <descriptorRefs>
+                        <descriptorRef>jar-with-dependencies</descriptorRef>
+                    </descriptorRefs>
+                    </configuration>
+                    <executions>
+                    <execution>
+                        <id>make-assembly</id> <!-- this is used for inheritance merges -->
+                        <phase>package</phase> <!-- bind to the packaging phase -->
+                        <goals>
+                        <goal>single</goal>
+                        </goals>
+                    </execution>
+                    </executions>
+                </plugin>
             </plugins>
         </pluginManagement>
         <plugins>
@@ -75,6 +102,41 @@
                 <artifactId>jacoco-maven-plugin</artifactId>
                 <version>0.8.1</version>
             </plugin>
+
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>2.5.5</version>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <mainClass>simpledb.SimpleDb</mainClass>
+                        </manifest>
+                        <!-- <manifestEntries>
+                            <Class-Path>${project.build.directory}/lib/zql.jar</Class-Path>
+                        </manifestEntries> --> 
+                    </archive>
+                    <descriptorRefs>
+                        <descriptorRef>jar-with-dependencies</descriptorRef>
+                    </descriptorRefs>
+                <executions>
+                    <execution>
+                        <id>copy-dependencies</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/lib</outputDirectory>
+                            <excludeTransitive>false</excludeTransitive>
+                            <stripVersion>false</stripVersion>
+                        </configuration>
+                    </execution>
+                </executions>
+                </configuration>
+            </plugin>
+
         </plugins>
     </build>
     <reporting>

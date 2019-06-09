@@ -29,7 +29,7 @@ public class StringAggregator implements Aggregator {
         this.gbfieldType = gbfieldtype;
         this.afield = afield;
         this.what = what;
-        this.countMap = new HashMap<>();
+        this.countMap = new HashMap<Field, Integer>();
     }
 
 
@@ -93,7 +93,7 @@ public class StringAggregator implements Aggregator {
      *   aggregate specified in the constructor.
      */
     public DbIterator iterator() {
-        ArrayList<Tuple> tempList = new ArrayList<>();
+        ArrayList<Tuple> tempList = new ArrayList<Tuple>();
         for (Map.Entry<Field, Integer> entry : countMap.entrySet()) {
             Tuple tempTup = new Tuple(AggDesc);
             Field gField = null;
