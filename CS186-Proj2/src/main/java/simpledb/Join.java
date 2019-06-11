@@ -11,6 +11,10 @@ public class Join extends Operator {
     private JoinPredicate p;
     private DbIterator child1;
     private DbIterator child2;
+    private Tuple[] JoinBuffer;
+
+    //131072 is the default buffer of mysql join operation
+    private static final int BLOCKMEMORY = 131072;
 
     /**
      * Constructor. Accepts to children to join and the predicate to join them
@@ -124,25 +128,62 @@ public class Join extends Operator {
         int tpSize2 = child2.getTupleDesc().numFields();
         ArrayList<Tuple> tempTps = new ArrayList<Tuple>();
         
+        //对外表进行缓存，使用最原始的数据结构
+        int BufferSize = BLOCKMEMORY / child1.getTupleDesc().getSize();
+        JoinBuffer = new Tuple[BufferSize];
+        int BufferIndex = 0;
+
         while (child1.hasNext()){
             Tuple tp1 = child1.next();
+            JoinBuffer[BufferIndex++] = tp1;
+            if (BufferIndex < BufferSize) continue; 
+
             while (child2.hasNext()){
                 Tuple tp2 = child2.next();
-                if (p.filter(tp1, tp2)){
-                    Tuple tempTp = new Tuple(getTupleDesc());
-                    int i = 0;
-                    for (; i < tpSize1; i++){
-                        tempTp.setField(i, tp1.getField(i));
-                    }
+                for (int k = 0; k < BufferSize; k++) {
+                    tp1 = JoinBuffer[k];
+                    if (p.filter(tp1, tp2)){
+                        Tuple tempTp = new Tuple(getTupleDesc());
+                        int i = 0;
+                        for (; i < tpSize1; i++){
+                            tempTp.setField(i, tp1.getField(i));
+                        }
 
-                    for (; i < tpSize2 + tpSize1 ; i++){
-                        tempTp.setField(i, tp2.getField(i-tpSize1));
+                        for (; i < tpSize2 + tpSize1 ; i++){
+                            tempTp.setField(i, tp2.getField(i-tpSize1));
+                        }
+                        tempTps.add(tempTp);
                     }
-                    tempTps.add(tempTp);
                 }
             }
+
+            //reset buffer
+            BufferIndex = 0;
             child2.rewind();
         }
+
+        //if buffer is not empty
+        if (BufferIndex != 0) {
+            while (child2.hasNext()){
+                Tuple tp2 = child2.next();
+                for (int k = 0; k < BufferIndex; k++) {
+                    Tuple tp1 = JoinBuffer[k];
+                    if (p.filter(tp1, tp2)){
+                        Tuple tempTp = new Tuple(getTupleDesc());
+                        int i = 0;
+                        for (; i < tpSize1; i++){
+                            tempTp.setField(i, tp1.getField(i));
+                        }
+
+                        for (; i < tpSize2 + tpSize1 ; i++){
+                            tempTp.setField(i, tp2.getField(i-tpSize1));
+                        }
+                        tempTps.add(tempTp);
+                    }
+                }
+            }
+        }
+
         return tempTps.iterator();
     }
 
