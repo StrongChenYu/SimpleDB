@@ -17,7 +17,7 @@ public class IntegerAggregator implements Aggregator {
     private HashMap<Field, Integer> gbFieldNum;
     /**
      * Aggregate constructor
-     * 
+     *
      * @param gbfield
      *            the 0-based index of the group-by field in the tuple, or
      *            NO_GROUPING if there is no grouping
@@ -43,9 +43,9 @@ public class IntegerAggregator implements Aggregator {
 
         TupleDesc tempDesc = tup.getTupleDesc();
         int length = 2;
-        
+
         if (gbfield == Aggregator.NO_GROUPING) length = 1;
-    
+
         Type[] tempTypes = new Type[length];
         String[] tempNames = new String[length];
 
@@ -66,7 +66,7 @@ public class IntegerAggregator implements Aggregator {
     /**
      * Merge a new tuple into the aggregate, grouping as indicated in the
      * constructor
-     * 
+     *
      * @param tup
      *            the Tuple containing an aggregate field and a group-by field
      */
@@ -79,29 +79,29 @@ public class IntegerAggregator implements Aggregator {
         }else{
             tempgbf = tup.getField(gbfield);
         }
-        
+
         if (afieldNum.get(tempgbf) == null){
             if (AggDesc == null) AggDesc = createFlowTupleDesc(tup);
-            
+
             afieldNum.put(tempgbf, tempaf.getValue());
             gbFieldNum.put(tempgbf, 1);
 
             return;
-        } 
-        
+        }
+
         switch(what){
             case AVG:
                 countField(tempgbf);
                 sumField(tempgbf, tempaf);
-                break; 
+                break;
             case SUM:
                 sumField(tempgbf, tempaf);
                 break;
             case MIN:
-                minField(tempgbf, tempaf); 
+                minField(tempgbf, tempaf);
                 break;
             case MAX:
-                maxField(tempgbf, tempaf); 
+                maxField(tempgbf, tempaf);
                 break;
             case COUNT:
                 countField(tempgbf);
@@ -138,7 +138,7 @@ public class IntegerAggregator implements Aggregator {
 
     /**
      * Create a DbIterator over group aggregate results.
-     * 
+     *
      * @return a DbIterator whose tuples are the pair (groupVal, aggregateVal)
      *         if using group, or a single (aggregateVal) if no grouping. The
      *         aggregateVal is determined by the type of aggregate specified in
@@ -161,7 +161,7 @@ public class IntegerAggregator implements Aggregator {
                 case COUNT:
                     tempTup.setField(i, new IntField(gbFieldNum.get(gField)));
                     break;
-                default:                    
+                default:
                     tempTup.setField(i, new IntField(entry.getValue()));
             }
             tempList.add(tempTup);
