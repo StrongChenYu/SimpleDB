@@ -171,6 +171,7 @@ public class Parser {
         ZExp w = q.getWhere();
         if (w != null) {
 
+            //不支持子查询
             if (!(w instanceof ZExpression)) {
                 throw new simpledb.ParsingException(
                         "Nested queries are currently unsupported.");
@@ -186,12 +187,16 @@ public class Parser {
         if (gby != null) {
             @SuppressWarnings("unchecked")
             Vector<ZExp> gbs = gby.getGroupBy();
+
+            //不支持多个field的group
             if (gbs.size() > 1) {
                 throw new simpledb.ParsingException(
                         "At most one grouping field expression supported.");
             }
             if (gbs.size() == 1) {
                 ZExp gbe = gbs.elementAt(0);
+
+                //不支持不是常量的group
                 if (!(gbe instanceof ZConstant)) {
                     throw new simpledb.ParsingException(
                             "Complex grouping expressions (" + gbe
@@ -212,12 +217,15 @@ public class Parser {
 
         for (int i = 0; i < selectList.size(); i++) {
             ZSelectItem si = selectList.elementAt(i);
+
+            //不支持在select的field中的select
             if (si.getAggregate() == null
                     && (si.isExpression() && !(si.getExpression() instanceof ZConstant))) {
                 throw new simpledb.ParsingException(
                         "Expressions in SELECT list are not supported.");
             }
             if (si.getAggregate() != null) {
+                //不支持多项field
                 if (aggField != null) {
                     throw new simpledb.ParsingException(
                             "Aggregates over multiple fields not supported.");
@@ -229,6 +237,7 @@ public class Parser {
                         + ", agg fun is : " + aggFun);
                 lp.addProjectField(aggField, aggFun);
             } else {
+                //如果没有检测到aggregate关键字，不应该出现group语句
                 if (groupByField != null
                         && !(groupByField.equals(si.getTable() + "."
                                 + si.getColumn()) || groupByField.equals(si
@@ -611,18 +620,24 @@ public class Parser {
 
         String queryFile = null;
 
+        // 如果长度大于1的话说明输入了参数
         if (argv.length > 1) {
             for (int i = 1; i < argv.length; i++) {
+                //这里的explain mode未知
                 if (argv[i].equals("-explain")) {
                     explain = true;
                     System.out.println("Explain mode enabled.");
                 } else if (argv[i].equals("-f")) {
+                    //-f 表示从文件输入query语句，所以interactive模式关闭
                     interactive = false;
                     if (i++ == argv.length) {
+
+                        //这个if表示file name没有输入，-f 后面没有参数，所以程序会结束
                         System.out.println("Expected file name after -f\n"
                                 + usage);
                         System.exit(0);
                     }
+
                     queryFile = argv[i];
 
                 } else {
@@ -632,10 +647,13 @@ public class Parser {
             }
         }
         if (!interactive) {
+
+            //如果这里的交互式模式没有开启
             try {
                 // curtrans = new Transaction();
                 // curtrans.start();
                 long startTime = System.currentTimeMillis();
+                //直接读取query语句文件，然后调用processNextStatement方法进行处理
                 processNextStatement(new FileInputStream(new File(queryFile)));
                 long time = System.currentTimeMillis() - startTime;
                 System.out.printf("----------------\n%.2f seconds\n\n",
@@ -651,6 +669,7 @@ public class Parser {
             ConsoleReader reader = new ConsoleReader();
 
             // Add really stupid tab completion for simple SQL
+            // 为简单的sql语句添加愚蠢的补全:)
             ArgumentCompletor completor = new ArgumentCompletor(
                     new SimpleCompletor(SQL_COMMANDS));
             completor.setStrict(false); // match at any position
@@ -677,6 +696,8 @@ public class Parser {
                     }
 
                     long startTime = System.currentTimeMillis();
+
+                    //上面为输入，这个方法为核心
                     processNextStatement(new ByteArrayInputStream(
                             statementBytes));
                     long time = System.currentTimeMillis() - startTime;
@@ -698,7 +719,7 @@ public class Parser {
 
 class TupleArrayIterator implements DbIterator {
     /**
-	 * 
+	 *
 	 */
     private static final long serialVersionUID = 1L;
     ArrayList<Tuple> tups;
@@ -720,7 +741,7 @@ class TupleArrayIterator implements DbIterator {
     /**
      * Gets the next tuple from the operator (typically implementing by reading
      * from a child operator or an access method).
-     * 
+     *
      * @return The next tuple in the iterator, or null if there are no more
      *         tuples.
      */
@@ -731,7 +752,7 @@ class TupleArrayIterator implements DbIterator {
 
     /**
      * Resets the iterator to the start.
-     * 
+     *
      * @throws DbException
      *             When rewind is unsupported.
      */
