@@ -25,6 +25,8 @@ public class TableStats {
         statsMap.put(tablename, stats);
     }
 
+    private static final int BUCKET = 10;
+
     public static void setStatsMap(HashMap<String,TableStats> s)
     {
         try {
@@ -66,7 +68,12 @@ public class TableStats {
      * histograms.
      */
     static final int NUM_HIST_BINS = 100;
-
+    private int tableid;
+    private int iocostperpage;
+    private int ntups;
+    private HeapFile table;
+    private HashMap<Integer, Object> hisArray;
+    private HashMap<Integer, Integer[]> maxAndmin;
     /**
      * Create a new TableStats object, that keeps track of statistics on each
      * column of a table
@@ -86,6 +93,101 @@ public class TableStats {
         // necessarily have to (for example) do everything
         // in a single scan of the table.
         // some code goes here
+        this.tableid = tableid;
+        this.iocostperpage = ioCostPerPage;
+        this.ntups = 0;
+        this.hisArray = new HashMap<Integer, Object>();
+        this.maxAndmin = new HashMap<Integer, Integer[]>();
+        //初始化直方图，用于统计数据用
+        this.initHistogram();
+    }
+
+    private void initHistogram() {
+        Transaction t = new Transaction();
+        DbIterator iter = new SeqScan(t.getId(), tableid);
+
+        try {
+            iter.open();
+            //第一次循环找出int的最大最小值，统计tuple数量，并建立histogram表
+            while (iter.hasNext()) {
+                //统计总的tuple数量
+                ntups++;
+
+                Tuple tup = iter.next();
+                TupleDesc tupDes = tup.getTupleDesc();
+
+                for (int i = 0; i < tupDes.numFields(); i++) {
+                    Type type = tupDes.getFieldType(i);
+
+                    if (type.equals(Type.INT_TYPE)) {
+                        IntField intf = (IntField) tup.getField(i);
+                        Integer value = intf.getValue();
+
+                        if (maxAndmin.containsKey(i)) {
+                            Integer[] values = maxAndmin.get(i);
+
+                            //更新最大值
+                            if (value > values[0]) values[0] = value;
+
+                            //更新最小值
+                            if (value < values[1]) values[1] = value;
+
+                        } else {
+                            Integer[] values = new Integer[]{value, value};
+                            maxAndmin.put(i, values);
+                        }
+                    }
+                }
+            }
+
+
+            //第二次循环添加数据填充histogram
+            iter.rewind();
+            while (iter.hasNext()) {
+                Tuple tup = iter.next();
+                TupleDesc tupDes = tup.getTupleDesc();
+
+                for (int i = 0; i < tupDes.numFields(); i++) {
+                    Type type = tupDes.getFieldType(i);
+
+                    switch (type) {
+                        case INT_TYPE:
+                            IntField intf = (IntField) tup.getField(i);
+                            int intv = intf.getValue();
+
+                            if (hisArray.containsKey(i)) {
+                                IntHistogram intHis = (IntHistogram) hisArray.get(i);
+                                intHis.addValue(intv);
+                            } else {
+                                int max = maxAndmin.get(i)[0];
+                                int min = maxAndmin.get(i)[1];
+                                hisArray.put(i, new IntHistogram(BUCKET, min, max));
+                            }
+                            break;
+                        case STRING_TYPE:
+
+                            StringField sf = (StringField) tup.getField(i);
+                            String sv = sf.getValue();
+
+                            if (hisArray.containsKey(i)) {
+                                StringHistogram sHis = (StringHistogram) hisArray.get(i);
+                                sHis.addValue(sv);
+                            } else {
+                                hisArray.put(i, new StringHistogram(BUCKET));
+                            }
+                            break;
+                        default:
+                    }
+
+                }
+            }
+
+            iter.close();
+        } catch (TransactionAbortedException e) {
+            e.printStackTrace();
+        } catch (DbException e) {
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -100,9 +202,13 @@ public class TableStats {
      *
      * @return The estimated cost of scanning the table.
      */
+    // 假设在bufferpool中预先没有page，硬盘一次只读取一个完整的页，不管它是否满tuple
     public double estimateScanCost() {
         // some code goes here
-        return 0;
+        HeapFile table = (HeapFile)Database.getCatalog().getDbFile(tableid);
+        //页数 x 读取每一页的iocost，难道不是这样子吗？
+        return table.numPages() * iocostperpage;
+        //return 0;
     }
 
     /**
@@ -115,8 +221,8 @@ public class TableStats {
      *         selectivityFactor
      */
     public int estimateTableCardinality(double selectivityFactor) {
-        // some code goes here
-        return 0;
+
+        return (int) Math.ceil(totalTuples() * selectivityFactor);
     }
 
     /**
@@ -148,8 +254,26 @@ public class TableStats {
      *         predicate
      */
     public double estimateSelectivity(int field, Predicate.Op op, Field constant) {
-        // some code goes here
-        return 1.0;
+        double selectivity = 0.0;
+
+        Type type = constant.getType();
+
+        switch (type) {
+            case STRING_TYPE:
+                String sv = ((StringField)constant).getValue();
+                StringHistogram sHis = (StringHistogram) hisArray.get(field);
+                selectivity = sHis.estimateSelectivity(op, sv);
+                break;
+            case INT_TYPE:
+                int iv = ((IntField)constant).getValue();
+                IntHistogram iHis = (IntHistogram) hisArray.get(field);
+                iHis.estimateSelectivity(op, iv);
+                selectivity = iHis.estimateSelectivity(op, iv);
+                break;
+            default:
+                //运行不到这里
+        }
+        return selectivity;
     }
 
     /**
@@ -157,7 +281,7 @@ public class TableStats {
      * */
     public int totalTuples() {
         // some code goes here
-        return 0;
+        return ntups;
     }
 
 }

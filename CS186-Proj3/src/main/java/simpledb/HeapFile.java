@@ -9,7 +9,7 @@ import java.util.*;
  * size, and the file is simply a collection of those pages. HeapFile works
  * closely with HeapPage. The format of HeapPages is described in the HeapPage
  * constructor.
- * 
+ *
  * @see simpledb.HeapPage#HeapPage
  * @author Sam Madden
  */
@@ -17,14 +17,14 @@ public class HeapFile implements DbFile {
 
     /**
      * Constructs a heap file backed by the specified file.
-     * 
+     *
      * @param f
      *            the file that stores the on-disk backing store for this heap
      *            file.
      */
     private File f;
     private TupleDesc td;
-    
+
     public HeapFile(File f, TupleDesc td) {
         // some code goes here
         this.f = f;
@@ -33,7 +33,7 @@ public class HeapFile implements DbFile {
 
     /**
      * Returns the File backing this HeapFile on disk.
-     * 
+     *
      * @return the File backing this HeapFile on disk.
      */
     public File getFile() {
@@ -47,7 +47,7 @@ public class HeapFile implements DbFile {
      * HeapFile has a "unique id," and that you always return the same value for
      * a particular HeapFile. We suggest hashing the absolute file name of the
      * file underlying the heapfile, i.e. f.getAbsoluteFile().hashCode().
-     * 
+     *
      * @return an ID uniquely identifying this HeapFile.
      */
     public int getId() {
@@ -60,7 +60,7 @@ public class HeapFile implements DbFile {
 
     /**
      * Returns the TupleDesc of the table stored in this DbFile.
-     * 
+     *
      * @return TupleDesc of this DbFile.
      */
     public TupleDesc getTupleDesc() {
@@ -78,7 +78,7 @@ public class HeapFile implements DbFile {
         try{
             InputStream is = new FileInputStream(f);
 
-            //skip to get the wanted data according to pageid            
+            //skip to get the wanted data according to pageid
             /*
                 is.skip() method can skip the specific bytes from file head,
                 so, we use skip method to make offset from head.
@@ -110,14 +110,14 @@ public class HeapFile implements DbFile {
 
             //read data
             rf.write(page.getPageData());
-            
+
             rf.close();
 
         }catch (IOException e){
             //throw new IOException("fail read page!");
             e.printStackTrace();
         }
-        
+
     }
 
     /**
@@ -125,7 +125,7 @@ public class HeapFile implements DbFile {
      */
     public int numPages() {
         // some code goes here
-        return (int)(f.length() / BufferPool.PAGE_SIZE);
+        return (int) Math.ceil(f.length() / BufferPool.PAGE_SIZE);
     }
 
 
@@ -136,7 +136,7 @@ public class HeapFile implements DbFile {
         // some code goes here
         ArrayList<Page> affectPages = new ArrayList<Page>();
         if (t == null) return affectPages;
-        
+
         int numPages = numPages();
         boolean pageFull = true;
         int i = 0;
@@ -144,7 +144,7 @@ public class HeapFile implements DbFile {
         for (; i < numPages; i++) {
             PageId pageId = new HeapPageId(getId(), i);
             HeapPage page = (HeapPage)Database.getBufferPool().getPage(tid, pageId, Permissions.READ_WRITE);
-            if (page.getNumEmptySlots() != 0) {    
+            if (page.getNumEmptySlots() != 0) {
                 page.insertTuple(t);
                 page.markDirty(true, tid);
                 affectPages.add(page);
@@ -158,7 +158,7 @@ public class HeapFile implements DbFile {
             //文件里含的页为0，所以需要创建一个page
             PageId pageId = new HeapPageId(getId(), i);
             HeapPage newPage = new HeapPage((HeapPageId)pageId, new byte[BufferPool.PAGE_SIZE]);
-            newPage.insertTuple(t); 
+            newPage.insertTuple(t);
             newPage.markDirty(true, tid);
             writePage(newPage);
             affectPages.add(newPage);
@@ -175,11 +175,11 @@ public class HeapFile implements DbFile {
         int numPages = numPages();
 
         HeapPage page = null;
-        
+
         page = (HeapPage)Database.getBufferPool().getPage(tid, t.getRecordId().getPageId(), Permissions.READ_WRITE);
         page.deleteTuple(t);
         page.markDirty(true, tid);
-        
+
         return page;
 
     }

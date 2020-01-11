@@ -2,7 +2,7 @@
     xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>chenyu</groupId>
-    <artifactId>CS186-Proj2</artifactId>
+    <artifactId>CS186-Proj3</artifactId>
     <version>1.0-SNAPSHOT</version>
     <properties>
         <maven.compiler.source>1.6</maven.compiler.source>
@@ -115,7 +115,7 @@
                         </manifest>
                         <!-- <manifestEntries>
                             <Class-Path>${project.build.directory}/lib/zql.jar</Class-Path>
-                        </manifestEntries> --> 
+                        </manifestEntries> -->
                     </archive>
                     <descriptorRefs>
                         <descriptorRef>jar-with-dependencies</descriptorRef>
