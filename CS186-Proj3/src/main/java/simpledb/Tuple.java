@@ -15,7 +15,7 @@ public class Tuple implements Serializable {
     private static final long serialVersionUID = 1L;
     /**
      * Create a new tuple with the specified schema (type).
-     * 
+     *
      * @param td
      *            the schema of this tuple. It must be a valid TupleDesc
      *            instance with at least one field.
@@ -51,7 +51,7 @@ public class Tuple implements Serializable {
 
     /**
      * Set the RecordId information for this tuple.
-     * 
+     *
      * @param rid
      *            the new RecordId for this tuple.
      */
@@ -62,7 +62,7 @@ public class Tuple implements Serializable {
 
     /**
      * Change the value of the ith field of this tuple.
-     * 
+     *
      * @param i
      *            index of the field to change. It must be a valid index.
      * @param f
@@ -74,7 +74,7 @@ public class Tuple implements Serializable {
 
     /**
      * @return the value of the ith field, or null if it has not been set.
-     * 
+     *
      * @param i
      *            field index to return. Must be a valid index.
      */
@@ -83,12 +83,17 @@ public class Tuple implements Serializable {
         return allFields[i];
     }
 
+    public Field getFieldByName(String field) {
+        int index = this.getTupleDesc().fieldNameToIndex(field);
+        return allFields[index];
+    }
+
     /**
      * Returns the contents of this Tuple as a string. Note that to pass the
      * system tests, the format needs to be as follows:
-     * 
+     *
      * column1\tcolumn2\tcolumn3\t...\tcolumnN\n
-     * 
+     *
      * where \t is any whitespace, except newline, and \n is a newline
      */
     public String toString() {
@@ -100,7 +105,7 @@ public class Tuple implements Serializable {
         }
         return tupleString;
     }
-    
+
     /**
      * @return
      *        An iterator which iterates over all the fields of this tuple

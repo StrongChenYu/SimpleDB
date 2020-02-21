@@ -187,6 +187,8 @@ public class TableStats {
             e.printStackTrace();
         } catch (DbException e) {
             e.printStackTrace();
+        } finally {
+            iter.close();
         }
     }
 

@@ -13,10 +13,11 @@ import javax.swing.tree.*;
 public class JoinOptimizer {
     LogicalPlan p;
     Vector<LogicalJoinNode> joins;
+    private static final int SCALING_FACTOR = 100;
 
     /**
      * Constructor
-     * 
+     *
      * @param p
      *            the logical plan being optimized
      * @param joins
@@ -34,7 +35,7 @@ public class JoinOptimizer {
      * inner/outer here -- because DbIterator's don't provide any cardinality
      * estimates, and stats only has information about the base tables. For this
      * reason, the plan1
-     * 
+     *
      * @param lj
      *            The join being considered
      * @param plan1
@@ -76,14 +77,14 @@ public class JoinOptimizer {
 
     /**
      * Estimate the cost of a join.
-     * 
+     *
      * The cost of the join should be calculated based on the join algorithm (or
      * algorithms) that you implemented for Project 2. It should be a function of
      * the amount of data that must be read over the course of the query, as
-     * well as the number of CPU opertions performed by your join. Assume that
+     * well as the number of CPU operations performed by your join. Assume that
      * the cost of a single predicate application is roughly 1.
-     * 
-     * 
+     *
+     *
      * @param j
      *            A LogicalJoinNode representing the join operation being
      *            performed.
@@ -111,14 +112,28 @@ public class JoinOptimizer {
             // HINT: You may need to use the variable "j" if you implemented
             // a join algorithm that's more complicated than a basic nested-loops
             // join.
-            return -1.0;
+            /*
+            * 使用的是double block算法节省io cost
+            * 使用sort merget算法节省cpu cost
+            */
+            // IO cost = cost1 + Math.min(1, ntup / block1) * cost2
+            // Cpu cost = block1 * log (block1) + block2 * log(block2)
+            int block1 =  Join.BLOCKMEMORY / Database.getCatalog().getTupleDesc(j.t1Alias).getSize();
+            int block2 =  Join.BLOCKMEMORY / Database.getCatalog().getTupleDesc(j.t2Alias).getSize();
+            double ioCost = cost1 + Math.min(1, card1 / block1) * cost2;
+            double cpuCost = block1 * log(block1, 2) + block2 * log(block2,2);
+            return ioCost + cpuCost;
         }
+    }
+
+    private double log(double value, double base) {
+        return Math.log(value) / Math.log(base);
     }
 
     /**
      * Estimate the cardinality of a join. The cardinality of a join is the
      * number of tuples produced by the join.
-     * 
+     *
      * @param j
      *            A LogicalJoinNode representing the join operation being
      *            performed.
@@ -155,14 +170,63 @@ public class JoinOptimizer {
             boolean t2pkey, Map<String, TableStats> stats,
             Map<String, Integer> tableAliasToId) {
         int card = 1;
-        // some code goes here
-        return card <= 0 ? 1 : card;
+
+        //分三种情况
+        if (joinOp.equals(Predicate.Op.EQUALS) || joinOp.equals(Predicate.Op.NOT_EQUALS)){
+            //主键的情况
+            boolean ifEquals = joinOp.equals(Predicate.Op.EQUALS);
+            int maxTup = card1 * card2;
+            if (t1pkey && t2pkey) return ifEquals ? 1 : maxTup - 1;
+            if (t1pkey) return ifEquals ? card2 : maxTup - card2;
+            if (t2pkey) return ifEquals ? card1 : maxTup - card1;
+
+            //非主键join
+            Transaction t1 = new Transaction();
+            Transaction t2 = new Transaction();
+            DbIterator child1 = new SeqScan(t1.getId(), tableAliasToId.get(table1Alias));
+            DbIterator child2 = new SeqScan(t2.getId(), tableAliasToId.get(table2Alias));
+            HashSet<Field> fields1 = new HashSet<Field>();
+            HashSet<Field> fields2 = new HashSet<Field>();
+
+            try {
+                child1.open();
+                child2.open();
+
+                while (child1.hasNext()) {
+                    Tuple tp = child1.next();
+                    Field field = tp.getFieldByName(field1PureName);
+                    fields1.add(field);
+                }
+
+                while (child2.hasNext()) {
+                    Tuple tp = child2.next();
+                    Field field = tp.getFieldByName(field2PureName);
+                    fields2.add(field);
+                }
+            } catch (DbException e) {
+                e.printStackTrace();
+            } catch (TransactionAbortedException e) {
+                e.printStackTrace();
+            } finally {
+                child1.close();
+                child2.close();
+            }
+
+            int maxV = Math.max(fields1.size(), fields2.size());
+            return ifEquals ? maxTup / maxV : maxTup - maxTup / maxV;
+
+        } else {
+            //0.3 is the fixed fraction
+            return (int)(card1 * card2 * 0.3);
+        }
+
+        //return card <= 0 ? 1 : card;
     }
 
     /**
      * Helper method to enumerate all of the subsets of a given size of a
      * specified vector.
-     * 
+     *
      * @param v
      *            The vector whose subsets are desired
      * @param size
@@ -195,7 +259,7 @@ public class JoinOptimizer {
     /**
      * Compute a logical, reasonably efficient join on the specified tables. See
      * project description for hints on how this should be implemented.
-     * 
+     *
      * @param stats
      *            Statistics for each table involved in the join, referenced by
      *            base table names, not alias
@@ -232,7 +296,7 @@ public class JoinOptimizer {
      * joinToRemove to joinSet (joinSet should contain joinToRemove), given that
      * all of the subsets of size joinSet.size() - 1 have already been computed
      * and stored in PlanCache pc.
-     * 
+     *
      * @param stats
      *            table stats for all of the tables, referenced by table names
      *            rather than alias (see {@link #orderJoins})
@@ -393,7 +457,7 @@ public class JoinOptimizer {
     /**
      * Return true if field is a primary key of the specified table, false
      * otherwise
-     * 
+     *
      * @param tableAlias
      *            The alias of the table in the query
      * @param field
@@ -424,7 +488,7 @@ public class JoinOptimizer {
      * Helper function to display a Swing window with a tree representation of
      * the specified list of joins. See {@link #orderJoins}, which may want to
      * call this when the analyze flag is true.
-     * 
+     *
      * @param js
      *            the join plan to visualize
      * @param pc

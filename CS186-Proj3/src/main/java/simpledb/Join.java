@@ -14,14 +14,15 @@ public class Join extends Operator {
     private Tuple[] leftBuffer;
     private Tuple[] rightBuffer;
     private ArrayList<Tuple> tempTps;
+    private HashMap<Integer, Integer> map;
 
     //131072 is the default buffer of mysql join operation
-    private static final int BLOCKMEMORY = 131072 * 5;
+    public static final int BLOCKMEMORY = 131072 * 5;
 
     /**
      * Constructor. Accepts to children to join and the predicate to join them
      * on
-     * 
+     *
      * @param p
      *            The predicate to use to join the children
      * @param child1
@@ -80,7 +81,7 @@ public class Join extends Operator {
         super.open();
         child1.open();
         child2.open();
-        tpIter = getAllFetchNext();
+        tpIter = sortMergeAndBlockNestLoop();
     }
 
     public void close() {
@@ -95,7 +96,7 @@ public class Join extends Operator {
         // some code goes here
         child1.rewind();
         child2.rewind();
-        tpIter = getAllFetchNext();
+        tpIter = sortMergeAndBlockNestLoop();
     }
     private Iterator<Tuple> tpIter = null;
     /**
@@ -112,7 +113,7 @@ public class Join extends Operator {
      * <p>
      * For example, if one tuple is {1,2,3} and the other tuple is {1,5,6},
      * joined on equality of the first column, then this returns {1,2,3,1,5,6}.
-     * 
+     *
      * @return The next matching tuple.
      * @see JoinPredicate#filter
      */
@@ -132,11 +133,72 @@ public class Join extends Operator {
     * 3. sort-merge 算法 排序算法决定整个程序运行速度下限，刚开始使用冒泡排序，第二个query用了140多秒，第三个就更不用说了
     *    之后使用java内置的sort速度明显提高，第一个0.40s，第二个2.30s，第三个6.28s
     */
-    private Iterator<Tuple> getAllFetchNext() throws TransactionAbortedException, DbException {
+
+    /*
+    * 只使用一边进行缓存
+    */
+    @Deprecated
+    private Iterator<Tuple> SingleBlockNestLoop() throws DbException, TransactionAbortedException {
+        tempTps = new ArrayList<Tuple>();
+
+        //只使用右缓存
+        int rightBufferSize = BLOCKMEMORY / child2.getTupleDesc().getSize();
+        int rbSize = 0;
+        rightBuffer = new Tuple[rightBufferSize];
+
+        while (child2.hasNext()) {
+
+            //读右缓存
+            while (rbSize < rightBufferSize && child2.hasNext()) {
+                rightBuffer[rbSize++] = child2.next();
+            }
+
+            while (child1.hasNext()) {
+                Tuple ltp = child1.next();
+                for (int i = 0; i < rbSize; i++) {
+                    //执行merge
+                    Tuple rtp = rightBuffer[i];
+                    if (p.filter(ltp, rtp)) tempTps.add(mergeTuple(ltp, rtp));
+                }
+            }
+            child1.rewind();
+            rbSize = 0;
+        }
+
+        return tempTps.iterator();
+    }
+
+    /*
+    * 用双边缓存DoubleBlock进行优化IO，但是使用Nestloop算法进行merge
+    * deprecated表示该方法不太适合这里使用，性能太低
+    */
+    @Deprecated
+    private void nestLoopMerge(int leftSize, int rightSize) {
+        int left = 0;
+        int right = 0;
+        while (left < leftSize) {
+            Tuple ltup = leftBuffer[left];
+            while (right < rightSize) {
+                Tuple rtup = rightBuffer[right];
+                if (p.filter(ltup, rtup)) tempTps.add(mergeTuple(ltup, rtup));
+                right++;
+            }
+            right = 0;
+            left++;
+        }
+    }
+
+    /*
+    * sort-merge + blockNl方法
+    * 左表和右表同时缓存，这部分使用的时blockNl方法
+    * 当左右缓存都满的时候，执行sort-merge方法
+    * 算法的时间上限取决于排序算法的程度，因为好的排序算法的时间复杂度可以下降到n*log(n)
+    */
+    private Iterator<Tuple> sortMergeAndBlockNestLoop() throws TransactionAbortedException, DbException {
         int tpSize1 = child1.getTupleDesc().numFields();
         int tpSize2 = child2.getTupleDesc().numFields();
         tempTps = new ArrayList<Tuple>();
-        
+
         //use sorted-merge algorithm
         int leftBufferSize = BLOCKMEMORY / child1.getTupleDesc().getSize();
         int rightBufferSize = BLOCKMEMORY / child2.getTupleDesc().getSize();
@@ -159,13 +221,17 @@ public class Join extends Operator {
             while (child2.hasNext()){
                 Tuple tp2 = child2.next();
                 rightBuffer[rightIndex++] = tp2;
-                
+
                 //右缓存没有读满就一直读
-                if (rightIndex < rightBufferSize) continue; 
+                if (rightIndex < rightBufferSize) continue;
 
                 //右缓存读满 && 左缓存读满
-                
+
+                //sortMerge表示使用了sort-merge算法
                 sortMerge(leftIndex, rightIndex);
+
+                //nestloopMerge表示使用了nest loop merge算法
+                //nestLoopMerge(leftIndex, rightIndex);
 
                 //重置右缓存
                 rightIndex = 0;
@@ -173,9 +239,10 @@ public class Join extends Operator {
 
             //处理剩余的右缓存（右缓存没满 && 左缓存已满）
             if (rightIndex < rightBufferSize) {
-                
+
                 sortMerge(leftIndex, rightIndex);
-                
+                //nestLoopMerge(leftIndex, rightIndex);
+
                 //重置右缓存
                 rightIndex = 0;
             }
@@ -192,13 +259,14 @@ public class Join extends Operator {
             while (child2.hasNext()){
                 Tuple tp2 = child2.next();
                 rightBuffer[rightIndex++] = tp2;
-                
+
                 //右缓存没有读满就一直读
-                if (rightIndex < rightBufferSize) continue; 
+                if (rightIndex < rightBufferSize) continue;
 
                 //右缓存读满 && 左缓存没满
-                
+
                 sortMerge(leftIndex, rightIndex);
+                //nestLoopMerge(leftIndex, rightIndex);
 
                 //重置右缓存
                 rightIndex = 0;
@@ -206,9 +274,10 @@ public class Join extends Operator {
 
             //（右缓存没满 && 左缓存没满）
             if (rightIndex < rightBufferSize) {
-                
+
                 sortMerge(leftIndex, rightIndex);
-                
+                //nestLoopMerge(leftIndex, rightIndex);
+
                 //重置右缓存
                 rightIndex = 0;
             }
@@ -224,7 +293,7 @@ public class Join extends Operator {
         //EQUALS, GREATER_THAN, LESS_THAN, LESS_THAN_OR_EQ, GREATER_THAN_OR_EQ, LIKE, NOT_EQUALS;
         switch (p.getOperator()){
             case EQUALS:
-                handleEqual(leftSize, rightSize);            
+                handleEqual(leftSize, rightSize);
                 break;
             case GREATER_THAN:
             case GREATER_THAN_OR_EQ:
@@ -235,7 +304,7 @@ public class Join extends Operator {
                 handleLessThan(leftSize, rightSize);
                 break;
         }
-        
+
     }
 
     private void handleLessThan(int leftSize, int rightSize) {
@@ -244,7 +313,7 @@ public class Join extends Operator {
 
         int left = 0;
         int right = 0;
-        
+
         while (left < leftSize && right < rightSize) {
             Tuple ltp = leftBuffer[left];
             Tuple rtp = rightBuffer[right];
@@ -252,13 +321,13 @@ public class Join extends Operator {
             if (p.filter(ltp, rtp)){
                 for (int i = right; i < rightSize; i++) {
                     Tuple rtpTemp = rightBuffer[i];
-                    Tuple tp = mergeTuple(ltp, rtpTemp);    
+                    Tuple tp = mergeTuple(ltp, rtpTemp);
                     tempTps.add(tp);
                 }
                 left++;
             } else {
                 right++;
-            } 
+            }
         }
     }
 
@@ -268,7 +337,7 @@ public class Join extends Operator {
 
         int left = 0;
         int right = 0;
-        
+
         while (left < leftSize && right < rightSize) {
             Tuple ltp = leftBuffer[left];
             Tuple rtp = rightBuffer[right];
@@ -295,7 +364,7 @@ public class Join extends Operator {
         int right = 0;
 
         JoinPredicate greatThan = new JoinPredicate(p.getField1(), Predicate.Op.GREATER_THAN, p.getField2());
-        
+
         boolean equalFlag = true;
         int leftFlag = 0;
 
@@ -315,9 +384,9 @@ public class Join extends Operator {
                 if (right < rightSize && left >= leftSize) {
                     right++;
                     left = leftFlag;
-                    equalFlag = !equalFlag;    
+                    equalFlag = !equalFlag;
                 }
-                
+
             } else if (greatThan.filter(ltp, rtp)){
                 right++;
                 left = leftFlag;
@@ -328,34 +397,17 @@ public class Join extends Operator {
         }
     }
 
-    //根据tuple中的field进行排序
     private void sort(Tuple[] buffer, int length, int field, boolean reverse) {
-
         CompareTp co = new CompareTp(reverse, field);
+        //arrays.sort内置使用归并加快速排序算法，时间复杂度大概为n*log(n)
         Arrays.sort(buffer, 0, length, co);
-        //stupid 冒泡排序
-        // for (int i = 1; i < length; i++) {
-        //     for (int j = 0; j < length - i; j++) {
-        //         if (reverse) {                    
-        //             if (greatThan.filter(buffer[j+1], buffer[j])) {
-        //                 Tuple temp = buffer[j];
-        //                 buffer[j] = buffer[j + 1];
-        //                 buffer[j + 1] = temp;
-        //             }
-        //         } else {
-        //             if (greatThan.filter(buffer[j], buffer[j+1])) {
-        //                 Tuple temp = buffer[j];
-        //                 buffer[j] = buffer[j + 1];
-        //                 buffer[j + 1] = temp;
-        //             }
-        //         }
-        //     }
-        // }
-
     }
 
+
+
+
     class CompareTp implements Comparator<Tuple>{
-        
+
         private JoinPredicate cop;
 
         public CompareTp(boolean reverse, int field){

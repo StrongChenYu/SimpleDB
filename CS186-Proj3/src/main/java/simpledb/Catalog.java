@@ -17,7 +17,7 @@ import java.util.*;
 public class Catalog {
     /**
      * Class Table used to store the data
-     * And build HashMap<name,table> HashMap<id,table> 
+     * And build HashMap<name,table> HashMap<id,table>
      */
 
     public class Table{
@@ -30,7 +30,7 @@ public class Catalog {
             this.name = name;
             this.pkeyField = pkeyField;
         }
-        
+
         public String getName(){
             return name;
         }
@@ -38,7 +38,7 @@ public class Catalog {
         public int getTableId(){
             return file.getId();
         }
-        
+
         public TupleDesc getTupleDesc(){
             return file.getTupleDesc();
         }
@@ -65,7 +65,7 @@ public class Catalog {
     public Catalog() {
         // some code goes here
         intHash = new HashMap<Integer,Table>();
-        stringHash = new HashMap<String,Table>(); 
+        stringHash = new HashMap<String,Table>();
     }
 
     /**
@@ -124,6 +124,11 @@ public class Catalog {
         return tempTable.getTupleDesc();
     }
 
+    public TupleDesc getTupleDesc(String tableName) {
+        Table tempTable = stringHash.get(tableName);
+        return tempTable.getTupleDesc();
+    }
+
     /**
      * Returns the DbFile that can be used to read the contents of the
      * specified table.
@@ -152,12 +157,12 @@ public class Catalog {
         Table tempTable = intHash.get(id);
         return tempTable.getName();
     }
-    
+
     /** Delete all tables from the catalog */
     public void clear() {
         // some code goes here
     }
-    
+
     /**
      * Reads the schema from a file and creates the appropriate tables in the database.
      * @param catalogFile
@@ -168,7 +173,7 @@ public class Catalog {
         String baseFolder=new File(path).getParent();
         try {
             BufferedReader br = new BufferedReader(new FileReader(new File(catalogFile)));
-            
+
             while ((line = br.readLine()) != null) {
                 //assume line is of the format name (field type, field type, ...)
                 String name = line.substring(0, line.indexOf("(")).trim();
@@ -219,7 +224,7 @@ public class Catalog {
     public void outPutFile(HeapFile table){
         TransactionId tid = new TransactionId();
         SeqScan f = new SeqScan(tid, table.getId());
-        
+
         try {
             // and run it
             f.open();
