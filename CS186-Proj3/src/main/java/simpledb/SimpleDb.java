@@ -10,14 +10,14 @@ public class SimpleDb {
             if (args.length<3 || args.length>5){
                 System.err.println("Unexpected number of arguments to convert ");
                 return;
-            }   
+            }
             File sourceTxtFile=new File(args[1]);
             File targetDatFile=new File(args[1].replaceAll(".txt", ".dat"));
             int numOfAttributes=Integer.parseInt(args[2]);
             Type[] ts = new Type[numOfAttributes];
             char fieldSeparator=',';
 
-            if (args.length == 3) 
+            if (args.length == 3)
                 for (int i=0;i<numOfAttributes;i++)
                     ts[i]=Type.INT_TYPE;
             else {
@@ -55,7 +55,7 @@ public class SimpleDb {
             DbFile table = Utility.openHeapFile(columns, tableFile);
             TransactionId tid = new TransactionId();
             DbFileIterator it = table.iterator(tid);
-            
+
             if(null == it){
                System.out.println("Error: method HeapFile.iterator(TransactionId tid) not yet implemented!");
             } else {
@@ -73,12 +73,12 @@ public class SimpleDb {
             for (int i = 1; i < args.length; ++i) {
                 newargs[i-1] = args[i];
             }
-            
+
             try {
                 //dynamically load Parser -- if it doesn't exist, print error message
                 Class<?> c = Class.forName("simpledb.Parser");
                 Class<?> s = String[].class;
-                
+
                 java.lang.reflect.Method m = c.getMethod("main", s);
                 m.invoke(null, (java.lang.Object)newargs);
             } catch (ClassNotFoundException cne) {
@@ -97,8 +97,9 @@ public class SimpleDb {
     }
 
     public static void main(String[] args) throws DbException, TransactionAbortedException, IOException {
-        String[] arg = {"parser","dblp_simpledb.schema"};
-        testMain(arg);
+        //wo cao la
+        //String[] arg = {"parser","dblp_simpledb.schema"};
+        testMain(args);
     }
 
 }

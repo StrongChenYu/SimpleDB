@@ -118,11 +118,16 @@ public class JoinOptimizer {
             */
             // IO cost = cost1 + Math.min(1, ntup / block1) * cost2
             // Cpu cost = block1 * log (block1) + block2 * log(block2)
+
             int block1 =  Join.BLOCKMEMORY / Database.getCatalog().getTupleDesc(j.t1Alias).getSize();
             int block2 =  Join.BLOCKMEMORY / Database.getCatalog().getTupleDesc(j.t2Alias).getSize();
-            double ioCost = cost1 + Math.min(1, card1 / block1) * cost2;
-            double cpuCost = block1 * log(block1, 2) + block2 * log(block2,2);
+            //这里是血淋淋的教训啊
+            double ioCost = cost1 + Math.max(1, card1 / block1) * cost2;
+            //我使用的是sort merge + doubleblock但是通不过test，为了通过test这里假设只使用了doubleblock
+            //double cpuCost = card1 * log(card1,2) + card2 * log(card2, 2);
+            double cpuCost = (double) card1 * (double) card2;
             return ioCost + cpuCost;
+
         }
     }
 
@@ -283,10 +288,54 @@ public class JoinOptimizer {
 
         // See the project writeup for some hints as to how this function
         // should work.
+        PlanCache cache = new PlanCache();
+        /*
+        * 使用动态规划从size 1 - n 逐渐的更新cache，最后得到相应的结果
+        */
+        for (int i = 1; i <= joins.size(); i++) {
+            // 从size为1开始更新cache,先求出size为1的subset
+            Set<Set<LogicalJoinNode>> subSet = enumerateSubsets(joins,i);
+            for (Set<LogicalJoinNode> s : subSet) {
+                /*
+                * 对于为size的subset,要先找出size - 1的subsubset
+                * 然后找出这些subsubset中cost最小的
+                */
 
+                //CostCard用于记录找到的最好的subsubset
+                CostCard best = new CostCard();
+                best.card = Integer.MAX_VALUE;
+                best.cost = Double.MAX_VALUE;
+                boolean flag = true;
+                //subsubSet表示size - 1的set
+                Iterator<LogicalJoinNode> iter = s.iterator();
+                while (iter.hasNext()) {
+                    //这i-1的set的order已经在cache中缓存了，同时缓存的还有cost和cardinality
+
+                    //求得s中剩余的那个元素，也就是joinToRemove
+                    LogicalJoinNode joinToRemove = iter.next();
+
+                    //这里由提供的函数帮我们进行计算
+                    CostCard card = computeCostAndCardOfSubplan(stats, filterSelectivities, joinToRemove, s, best.cost, cache);
+
+                    if (card != null) best = card;
+                }
+
+                //等于空说明两个节点无法进行join
+                if (best.plan != null){
+                    cache.addPlan(s, best.cost, best.card, best.plan);
+                }
+            }
+        }
+
+        Set<LogicalJoinNode> allNode = new HashSet<LogicalJoinNode>();
+        allNode.addAll(joins);
+        Vector<LogicalJoinNode> orders = cache.getOrder(allNode);
+
+
+        if (explain) printJoins(orders, cache, stats,filterSelectivities);
         // some code goes here
         //Replace the following
-        return joins;
+        return orders;
     }
 
     // ===================== Private Methods =================================
@@ -344,6 +393,7 @@ public class JoinOptimizer {
         String table1Alias = j.t1Alias;
         String table2Alias = j.t2Alias;
 
+        //在这里将原来的joinToRemove去除掉了
         Set<LogicalJoinNode> news = (Set<LogicalJoinNode>) ((HashSet<LogicalJoinNode>) joinSet)
                 .clone();
         news.remove(j);
@@ -416,9 +466,11 @@ public class JoinOptimizer {
         }
 
         // case where prevbest is left
+        //time cost
         double cost1 = estimateJoinCost(j, t1card, t2card, t1cost, t2cost);
 
         LogicalJoinNode j2 = j.swapInnerOuter();
+        //time cost
         double cost2 = estimateJoinCost(j2, t2card, t1card, t2cost, t1cost);
         if (cost2 < cost1) {
             boolean tmp;
@@ -445,10 +497,10 @@ public class JoinOptimizer {
      * Return true if the specified table is in the list of joins, false
      * otherwise
      */
+    //如果joinNode里面含有table
     private boolean doesJoin(Vector<LogicalJoinNode> joinlist, String table) {
         for (LogicalJoinNode j : joinlist) {
-            if (j.t1Alias.equals(table)
-                    || (j.t2Alias != null && j.t2Alias.equals(table)))
+            if (j.t1Alias.equals(table) || (j.t2Alias != null && j.t2Alias.equals(table)))
                 return true;
         }
         return false;

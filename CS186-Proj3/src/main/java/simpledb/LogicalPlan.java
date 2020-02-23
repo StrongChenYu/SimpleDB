@@ -573,4 +573,11 @@ public class LogicalPlan {
 
     }
 
+    public TupleDesc getTupleDesc(String alia){
+        if (tableMap.containsKey(alia)) {
+            return Database.getCatalog().getDbFile(tableMap.get(alia)).getTupleDesc();
+        }
+        throw new IllegalArgumentException();
+    }
+
 }
