@@ -49,8 +49,8 @@ public class Join extends Operator {
      * */
     public String getJoinField1Name() {
         // some code goes here
-        SeqScan scan = (SeqScan)child1;
-        return scan.getTableName();
+        String field = child1.getTupleDesc().getFieldName(p.getField1());
+        return field;
     }
 
     /**
@@ -60,8 +60,8 @@ public class Join extends Operator {
      * */
     public String getJoinField2Name() {
         // some code goes here
-        SeqScan scan = (SeqScan)child2;
-        return scan.getAlias();
+        String field = child1.getTupleDesc().getFieldName(p.getField1());
+        return field;
     }
 
     /**

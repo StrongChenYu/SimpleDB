@@ -302,7 +302,7 @@ public class LogicalPlan {
         HashMap<String,Double> filterSelectivities = new HashMap<String, Double>();
         HashMap<String,TableStats> statsMap = new HashMap<String,TableStats>();
 
-        //处理涉及到的每一个table
+
         while (tableIt.hasNext()) {
             LogicalScanNode table = tableIt.next();
             SeqScan ss = null;
@@ -372,7 +372,6 @@ public class LogicalPlan {
         }
 
         JoinOptimizer jo = new JoinOptimizer(this,joins);
-
         joins = jo.orderJoins(statsMap,filterSelectivities,explain);
 
         Iterator<LogicalJoinNode> joinIt = joins.iterator();
@@ -434,7 +433,6 @@ public class LogicalPlan {
         if (subplanMap.size() > 1) {
             throw new ParsingException("Query does not include join expressions joining all nodes!");
         }
-
         DbIterator node =  (DbIterator)(subplanMap.entrySet().iterator().next().getValue());
 
         //walk the select list, to determine order in which to project output fields

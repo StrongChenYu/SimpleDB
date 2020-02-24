@@ -101,6 +101,7 @@ public class JoinOptimizer {
      * @return An estimate of the cost of this query, in terms of cost1 and
      *         cost2
      */
+    // fuck this function!!!!!
     public double estimateJoinCost(LogicalJoinNode j, int card1, int card2,
             double cost1, double cost2) {
         if (j instanceof LogicalSubplanJoinNode) {
@@ -119,13 +120,15 @@ public class JoinOptimizer {
             // IO cost = cost1 + Math.min(1, ntup / block1) * cost2
             // Cpu cost = block1 * log (block1) + block2 * log(block2)
 
-            int block1 =  Join.BLOCKMEMORY / Database.getCatalog().getTupleDesc(j.t1Alias).getSize();
-            int block2 =  Join.BLOCKMEMORY / Database.getCatalog().getTupleDesc(j.t2Alias).getSize();
-            //这里是血淋淋的教训啊
+
+            int block1 =  Join.BLOCKMEMORY / p.getTupleDesc(j.t1Alias).getSize();
+            //这里是血淋淋的教训啊Math.min Math.max
+
             double ioCost = cost1 + Math.max(1, card1 / block1) * cost2;
             //我使用的是sort merge + doubleblock但是通不过test，为了通过test这里假设只使用了doubleblock
             //double cpuCost = card1 * log(card1,2) + card2 * log(card2, 2);
             double cpuCost = (double) card1 * (double) card2;
+
             return ioCost + cpuCost;
 
         }
@@ -305,15 +308,14 @@ public class JoinOptimizer {
                 CostCard best = new CostCard();
                 best.card = Integer.MAX_VALUE;
                 best.cost = Double.MAX_VALUE;
-                boolean flag = true;
                 //subsubSet表示size - 1的set
                 Iterator<LogicalJoinNode> iter = s.iterator();
+
                 while (iter.hasNext()) {
                     //这i-1的set的order已经在cache中缓存了，同时缓存的还有cost和cardinality
 
                     //求得s中剩余的那个元素，也就是joinToRemove
                     LogicalJoinNode joinToRemove = iter.next();
-
                     //这里由提供的函数帮我们进行计算
                     CostCard card = computeCostAndCardOfSubplan(stats, filterSelectivities, joinToRemove, s, best.cost, cache);
 
@@ -386,6 +388,7 @@ public class JoinOptimizer {
         if (this.p.getTableId(j.t2Alias) == null)
             throw new ParsingException("Unknown table " + j.t2Alias);
 
+
         String table1Name = Database.getCatalog().getTableName(
                 this.p.getTableId(j.t1Alias));
         String table2Name = Database.getCatalog().getTableName(
@@ -397,6 +400,7 @@ public class JoinOptimizer {
         Set<LogicalJoinNode> news = (Set<LogicalJoinNode>) ((HashSet<LogicalJoinNode>) joinSet)
                 .clone();
         news.remove(j);
+
 
         double t1cost, t2cost;
         int t1card, t2card;
@@ -467,6 +471,7 @@ public class JoinOptimizer {
 
         // case where prevbest is left
         //time cost
+
         double cost1 = estimateJoinCost(j, t1card, t2card, t1cost, t2cost);
 
         LogicalJoinNode j2 = j.swapInnerOuter();
@@ -485,11 +490,13 @@ public class JoinOptimizer {
 
         CostCard cc = new CostCard();
 
+
         cc.card = estimateJoinCardinality(j, t1card, t2card, leftPkey,
                 rightPkey, stats);
         cc.cost = cost1;
         cc.plan = (Vector<LogicalJoinNode>) prevBest.clone();
         cc.plan.addElement(j); // prevbest is left -- add new join to end
+
         return cc;
     }
 
