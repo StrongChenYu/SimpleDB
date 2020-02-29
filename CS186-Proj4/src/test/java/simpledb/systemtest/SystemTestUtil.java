@@ -95,20 +95,20 @@ public class SystemTestUtil {
     }
 
     public static void matchTuples(DbFile f, List<ArrayList<Integer>> tuples)
-            throws DbException, TransactionAbortedException, IOException {
+        throws DbException, TransactionAbortedException, IOException, InterruptedException {
         TransactionId tid = new TransactionId();
         matchTuples(f, tid, tuples);
         Database.getBufferPool().transactionComplete(tid);
     }
 
     public static void matchTuples(DbFile f, TransactionId tid, List<ArrayList<Integer>> tuples)
-            throws DbException, TransactionAbortedException, IOException {
+        throws DbException, TransactionAbortedException, IOException, InterruptedException {
         SeqScan scan = new SeqScan(tid, f.getId(), "");
         matchTuples(scan, tuples);
     }
 
     public static void matchTuples(DbIterator iterator, List<ArrayList<Integer>> tuples)
-            throws DbException, TransactionAbortedException, IOException {
+        throws DbException, TransactionAbortedException, IOException, InterruptedException {
         ArrayList<ArrayList<Integer>> copy = new ArrayList<ArrayList<Integer>>(tuples);
 
         if (Debug.isEnabled()) {

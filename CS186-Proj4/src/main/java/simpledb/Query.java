@@ -8,7 +8,7 @@ import java.util.*;
  * plan in the form of a high level DbIterator (built by initiating the
  * constructors of query plans) and runs it as a part of a specified
  * transaction.
- * 
+ *
  * @author Sam Madden
  */
 
@@ -51,7 +51,7 @@ public class Query implements Serializable {
     }
 
     public void start() throws IOException, DbException,
-            TransactionAbortedException {
+        TransactionAbortedException, InterruptedException {
         op.open();
 
         started = true;
@@ -62,14 +62,14 @@ public class Query implements Serializable {
     }
 
     /** @return true if there are more tuples remaining. */
-    public boolean hasNext() throws DbException, TransactionAbortedException {
+    public boolean hasNext() throws DbException, TransactionAbortedException, InterruptedException {
         return op.hasNext();
     }
 
     /**
      * Returns the next tuple, or throws NoSuchElementException if the iterator
      * is closed.
-     * 
+     *
      * @return The next tuple in the iterator
      * @throws DbException
      *             If there is an error in the database system
@@ -79,7 +79,7 @@ public class Query implements Serializable {
      *             If the transaction is aborted (e.g., due to a deadlock)
      */
     public Tuple next() throws DbException, NoSuchElementException,
-            TransactionAbortedException {
+        TransactionAbortedException, InterruptedException {
         if (!started)
             throw new DbException("Database not started.");
 
@@ -92,7 +92,7 @@ public class Query implements Serializable {
         started = false;
     }
 
-    public void execute() throws IOException, DbException, TransactionAbortedException {
+    public void execute() throws IOException, DbException, TransactionAbortedException, InterruptedException {
         TupleDesc td = this.getOutputTupleDesc();
 
         String names = "";

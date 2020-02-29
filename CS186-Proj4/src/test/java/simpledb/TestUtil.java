@@ -69,7 +69,7 @@ public class TestUtil {
                 Field f;
                 Object t = tupdata[i++];
                 if (t instanceof String)
-                    f = new StringField((String)t, Type.STRING_LEN); 
+                    f = new StringField((String)t, Type.STRING_LEN);
                 else
                     f = new IntField((Integer)t);
 
@@ -109,7 +109,7 @@ public class TestUtil {
      * If not, throw an assertion.
      */
     public static void compareDbIterators(DbIterator expected, DbIterator actual)
-            throws DbException, TransactionAbortedException {
+        throws DbException, TransactionAbortedException, InterruptedException {
         while (expected.hasNext()) {
             assertTrue(actual.hasNext());
 
@@ -128,7 +128,7 @@ public class TestUtil {
      * If not, throw an assertion.
      */
     public static void matchAllTuples(DbIterator expected, DbIterator actual) throws
-            DbException, TransactionAbortedException {
+        DbException, TransactionAbortedException, InterruptedException {
         // TODO(ghuo): this n^2 set comparison is kind of dumb, but we haven't
         // implemented hashCode or equals for tuples.
         boolean matched = false;
@@ -155,7 +155,7 @@ public class TestUtil {
      * Verifies that the DbIterator has been exhausted of all elements.
      */
     public static boolean checkExhausted(DbIterator it)
-        throws TransactionAbortedException, DbException {
+        throws TransactionAbortedException, DbException, InterruptedException {
 
         if (it.hasNext()) return false;
 
@@ -238,7 +238,7 @@ public class TestUtil {
             throw new RuntimeException("not implemented");
         }
 
-		public TupleDesc getTupleDesc() {			
+		public TupleDesc getTupleDesc() {
 			return td;
 		}
     }

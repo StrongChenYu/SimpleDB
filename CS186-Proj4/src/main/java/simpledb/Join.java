@@ -76,7 +76,7 @@ public class Join extends Operator {
     }
 
     public void open() throws DbException, NoSuchElementException,
-            TransactionAbortedException {
+        TransactionAbortedException, InterruptedException {
         // some code goes here
         super.open();
         child1.open();
@@ -92,7 +92,7 @@ public class Join extends Operator {
         tpIter = null;
     }
 
-    public void rewind() throws DbException, TransactionAbortedException {
+    public void rewind() throws DbException, TransactionAbortedException, InterruptedException {
         // some code goes here
         child1.rewind();
         child2.rewind();
@@ -138,7 +138,7 @@ public class Join extends Operator {
     * 只使用一边进行缓存
     */
     @Deprecated
-    private Iterator<Tuple> SingleBlockNestLoop() throws DbException, TransactionAbortedException {
+    private Iterator<Tuple> SingleBlockNestLoop() throws DbException, TransactionAbortedException, InterruptedException {
         tempTps = new ArrayList<Tuple>();
 
         //只使用右缓存
@@ -194,7 +194,7 @@ public class Join extends Operator {
     * 当左右缓存都满的时候，执行sort-merge方法
     * 算法的时间上限取决于排序算法的程度，因为好的排序算法的时间复杂度可以下降到n*log(n)
     */
-    private Iterator<Tuple> sortMergeAndBlockNestLoop() throws TransactionAbortedException, DbException {
+    private Iterator<Tuple> sortMergeAndBlockNestLoop() throws TransactionAbortedException, DbException, InterruptedException {
         int tpSize1 = child1.getTupleDesc().numFields();
         int tpSize2 = child2.getTupleDesc().numFields();
         tempTps = new ArrayList<Tuple>();

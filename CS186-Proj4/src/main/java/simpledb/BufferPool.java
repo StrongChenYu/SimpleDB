@@ -2,6 +2,9 @@ package simpledb;
 
 import java.io.*;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * BufferPool manages the reading and writing of pages into memory from
@@ -30,15 +33,17 @@ public class BufferPool {
     private int numPages;
     private LRUCache pageCache;
     private int MAX_CAPACITY;
-
+    private LockManager lockManager;
+    private static final int WAIT_TIME = 100;
 
     public BufferPool(int numPages) {
         // some code goes here
         this.numPages = numPages;
         this.MAX_CAPACITY = numPages;
-        
+
         //use LinkedHashMap implement the lRU Algorithm
-        pageCache = new LRUCache(MAX_CAPACITY);
+        this.pageCache = new LRUCache(MAX_CAPACITY);
+        this.lockManager = new LockManager();
     }
 
     /**
@@ -57,8 +62,17 @@ public class BufferPool {
      * @param perm the requested permissions on the page
      */
     public Page getPage(TransactionId tid, PageId pid, Permissions perm)
-        throws TransactionAbortedException, DbException {
+        throws TransactionAbortedException, DbException, InterruptedException {
         // some code goes here
+        //先抢锁，抢不到就等待，等待时间为固定
+        while (!lockManager.grantLock(pid, tid, perm)) {
+            Thread.sleep(WAIT_TIME);
+        }
+
+        return getPage(pid);
+    }
+
+    public Page getPage(PageId pid) {
         Page tempPage = pageCache.get(pid);
         if(tempPage != null){
             return tempPage;
@@ -67,7 +81,7 @@ public class BufferPool {
             Page pageRead = (HeapPage)file.readPage(pid);
             pageCache.put(pid,pageRead);
             return pageRead;
-        }        
+        }
     }
 
     /**
@@ -79,9 +93,8 @@ public class BufferPool {
      * @param tid the ID of the transaction requesting the unlock
      * @param pid the ID of the page to unlock
      */
-    public  void releasePage(TransactionId tid, PageId pid) {
-        // some code goes here
-        // not necessary for proj1
+    public  void releasePage(TransactionId tid, PageId pid) throws TransactionAbortedException {
+        lockManager.releaseLock(pid, tid);
     }
 
     /**
@@ -95,10 +108,8 @@ public class BufferPool {
     }
 
     /** Return true if the specified transaction has a lock on the specified page */
-    public boolean holdsLock(TransactionId tid, PageId p) {
-        // some code goes here
-        // not necessary for proj1
-        return false;
+    public boolean holdsLock(TransactionId tid, PageId pid) {
+        return lockManager.holdLockType(pid, tid) != null;
     }
 
     /**
@@ -116,26 +127,29 @@ public class BufferPool {
 
     /**
      * Add a tuple to the specified table behalf of transaction tid.  Will
-     * acquire a write lock on the page the tuple is added to(Lock 
-     * acquisition is not needed for lab2). May block if the lock cannot 
+     * acquire a write lock on the page the tuple is added to(Lock
+     * acquisition is not needed for lab2). May block if the lock cannot
      * be acquired.
-     * 
+     *
      * Marks any pages that were dirtied by the operation as dirty by calling
-     * their markDirty bit, and updates cached versions of any pages that have 
-     * been dirtied so that future requests see up-to-date pages. 
+     * their markDirty bit, and updates cached versions of any pages that have
+     * been dirtied so that future requests see up-to-date pages.
      *
      * @param tid the transaction adding the tuple
      * @param tableId the table to add the tuple to
      * @param t the tuple to add
      */
     public void insertTuple(TransactionId tid, int tableId, Tuple t)
-        throws DbException, IOException, TransactionAbortedException {
+        throws DbException, IOException, TransactionAbortedException, InterruptedException {
         // some code goes here
         DbFile file = Database.getCatalog().getDbFile(tableId);
         ArrayList<Page> affectPages = file.insertTuple(tid, t);
 
         for (int i = 0; i < affectPages.size(); i++){
-            file.writePage(affectPages.get(i));
+            Page page = affectPages.get(i);
+            page.markDirty(true,tid);
+            //!!!!!!!!!!!!!!!!!!
+            file.writePage(page);
         }
     }
 
@@ -152,11 +166,13 @@ public class BufferPool {
      * @param t   the tuple to add
      * @throws IOException
      */
-    public void deleteTuple(TransactionId tid, Tuple t) throws DbException, TransactionAbortedException, IOException {
+    public void deleteTuple(TransactionId tid, Tuple t) throws DbException, TransactionAbortedException, IOException, InterruptedException {
         DbFile file = Database.getCatalog().getDbFile(t.getRecordId().getPageId().getTableId());
         Page affectPage = file.deleteTuple(tid, t);
 
-        // file.writePage(affectPage);
+        affectPage.markDirty(true, tid);
+        //!!!!!!!!!!!!!!!!!
+        file.writePage(affectPage);
     }
 
     /**
@@ -211,6 +227,16 @@ public class BufferPool {
     private synchronized  void evictPage() throws DbException {
         // some code goes here
         // not necessary for proj1
+    }
+
+    public static void main(String[] args) {
+//        HashMap<Integer, AtomicBoolean> map = new HashMap<Integer, AtomicBoolean>();
+//        AtomicBoolean a = new AtomicBoolean();
+//        System.out.println(map.get(1));
+        ReentrantLock lock = new ReentrantLock();
+        lock.lock();
+        lock.lock();
+        System.out.println(lock.isLocked());
     }
 
 }

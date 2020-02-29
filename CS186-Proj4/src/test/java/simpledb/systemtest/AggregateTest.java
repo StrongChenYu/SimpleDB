@@ -11,7 +11,7 @@ import org.junit.Test;
 
 public class AggregateTest extends SimpleDbTestBase {
     public void validateAggregate(DbFile table, Aggregator.Op operation, int aggregateColumn, int groupColumn, ArrayList<ArrayList<Integer>> expectedResult)
-            throws DbException, TransactionAbortedException, IOException {
+        throws DbException, TransactionAbortedException, IOException, InterruptedException {
         TransactionId tid = new TransactionId();
         SeqScan ss = new SeqScan(tid, table.getId(), "");
         Aggregate ag = new Aggregate(ss, aggregateColumn, groupColumn, operation);
@@ -74,7 +74,7 @@ public class AggregateTest extends SimpleDbTestBase {
     private final static int MAX_VALUE = 64;
     private final static int COLUMNS = 3;
     private void doAggregate(Aggregator.Op operation, int groupColumn)
-            throws IOException, DbException, TransactionAbortedException {
+        throws IOException, DbException, TransactionAbortedException, InterruptedException {
         // Create the table
         ArrayList<ArrayList<Integer>> createdTuples = new ArrayList<ArrayList<Integer>>();
         HeapFile table = SystemTestUtil.createRandomHeapFile(
@@ -88,28 +88,28 @@ public class AggregateTest extends SimpleDbTestBase {
         validateAggregate(table, operation, 1, groupColumn, expected);
     }
 
-    @Test public void testSum() throws IOException, DbException, TransactionAbortedException {
+    @Test public void testSum() throws IOException, DbException, TransactionAbortedException, InterruptedException {
         doAggregate(Aggregator.Op.SUM, 0);
     }
 
-    @Test public void testMin() throws IOException, DbException, TransactionAbortedException {
+    @Test public void testMin() throws IOException, DbException, TransactionAbortedException, InterruptedException {
         doAggregate(Aggregator.Op.MIN, 0);
     }
 
-    @Test public void testMax() throws IOException, DbException, TransactionAbortedException {
+    @Test public void testMax() throws IOException, DbException, TransactionAbortedException, InterruptedException {
         doAggregate(Aggregator.Op.MAX, 0);
     }
 
-    @Test public void testCount() throws IOException, DbException, TransactionAbortedException {
+    @Test public void testCount() throws IOException, DbException, TransactionAbortedException, InterruptedException {
         doAggregate(Aggregator.Op.COUNT, 0);
     }
 
-    @Test public void testAverage() throws IOException, DbException, TransactionAbortedException {
+    @Test public void testAverage() throws IOException, DbException, TransactionAbortedException, InterruptedException {
         doAggregate(Aggregator.Op.AVG, 0);
     }
 
     @Test public void testAverageNoGroup()
-            throws IOException, DbException, TransactionAbortedException {
+        throws IOException, DbException, TransactionAbortedException, InterruptedException {
         doAggregate(Aggregator.Op.AVG, Aggregator.NO_GROUPING);
     }
 

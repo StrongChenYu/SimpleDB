@@ -12,7 +12,7 @@ public class Filter extends Operator {
     /**
      * Constructor accepts a predicate to apply and a child operator to read
      * tuples to filter from.
-     * 
+     *
      * @param p
      *            The predicate to filter tuples with
      * @param child
@@ -38,7 +38,7 @@ public class Filter extends Operator {
     }
 
     public void open() throws DbException, NoSuchElementException,
-            TransactionAbortedException {
+        TransactionAbortedException, InterruptedException {
         // some code goes here
         super.open();
         child.open();
@@ -50,7 +50,7 @@ public class Filter extends Operator {
         child.close();
     }
 
-    public void rewind() throws DbException, TransactionAbortedException {
+    public void rewind() throws DbException, TransactionAbortedException, InterruptedException {
         // some code goes here
         child.rewind();
     }
@@ -59,13 +59,13 @@ public class Filter extends Operator {
      * AbstractDbIterator.readNext implementation. Iterates over tuples from the
      * child operator, applying the predicate to them and returning those that
      * pass the predicate (i.e. for which the Predicate.filter() returns true.)
-     * 
+     *
      * @return The next tuple that passes the filter, or null if there are no
      *         more tuples
      * @see Predicate#filter
      */
     protected Tuple fetchNext() throws NoSuchElementException,
-            TransactionAbortedException, DbException {
+        TransactionAbortedException, DbException, InterruptedException {
         // some code goes here
         while (child.hasNext()){
             Tuple tempt = child.next();

@@ -9,7 +9,7 @@ import org.junit.Test;
 
 public class InsertTest extends SimpleDbTestBase {
     private void validateInsert(int columns, int sourceRows, int destinationRows)
-                throws DbException, IOException, TransactionAbortedException {
+        throws DbException, IOException, TransactionAbortedException, InterruptedException {
         // Create the two tables
         ArrayList<ArrayList<Integer>> sourceTuples = new ArrayList<ArrayList<Integer>>();
         HeapFile source = SystemTestUtil.createRandomHeapFile(
@@ -49,22 +49,22 @@ public class InsertTest extends SimpleDbTestBase {
     }
 
     @Test public void testEmptyToEmpty()
-            throws IOException, DbException, TransactionAbortedException {
+        throws IOException, DbException, TransactionAbortedException, InterruptedException {
         validateInsert(3, 0, 0);
     }
 
     @Test public void testEmptyToOne()
-            throws IOException, DbException, TransactionAbortedException {
+        throws IOException, DbException, TransactionAbortedException, InterruptedException {
         validateInsert(8, 0, 1);
     }
 
     @Test public void testOneToEmpty()
-            throws IOException, DbException, TransactionAbortedException {
+        throws IOException, DbException, TransactionAbortedException, InterruptedException {
         validateInsert(3, 1, 0);
     }
 
     @Test public void testOneToOne()
-            throws IOException, DbException, TransactionAbortedException {
+        throws IOException, DbException, TransactionAbortedException, InterruptedException {
         validateInsert(1, 1, 1);
     }
 

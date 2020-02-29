@@ -132,7 +132,7 @@ public class HeapFile implements DbFile {
 
     // see DbFile.java for javadocs
     public ArrayList<Page> insertTuple(TransactionId tid, Tuple t)
-            throws DbException, IOException, TransactionAbortedException {
+        throws DbException, IOException, TransactionAbortedException, InterruptedException {
         // some code goes here
         ArrayList<Page> affectPages = new ArrayList<Page>();
         if (t == null) return affectPages;
@@ -168,7 +168,7 @@ public class HeapFile implements DbFile {
     }
 
     // see DbFile.java for javadocs
-    public Page deleteTuple(TransactionId tid, Tuple t) throws DbException,TransactionAbortedException {
+    public Page deleteTuple(TransactionId tid, Tuple t) throws DbException, TransactionAbortedException, InterruptedException {
 
         if (t == null) return null;
 
@@ -204,7 +204,7 @@ public class HeapFile implements DbFile {
             this.tempiter = null;
         }
 
-        public void open() throws DbException, TransactionAbortedException {
+        public void open() throws DbException, TransactionAbortedException, InterruptedException {
             if (numpages == 0){
                 tempiter = null;
                 return;
@@ -221,7 +221,7 @@ public class HeapFile implements DbFile {
             return false;
         }
 
-        public Tuple next() throws DbException, TransactionAbortedException, NoSuchElementException {
+        public Tuple next() throws DbException, TransactionAbortedException, NoSuchElementException, InterruptedException {
             if (tempiter == null) throw new NoSuchElementException("iterate wrong!");
             Tuple tempTup = tempiter.next();
             if (!tempiter.hasNext()) {
@@ -231,7 +231,7 @@ public class HeapFile implements DbFile {
             return tempTup;
         }
 
-        public void rewind() throws DbException, TransactionAbortedException {
+        public void rewind() throws DbException, TransactionAbortedException, InterruptedException {
             open();
         }
 
@@ -240,7 +240,7 @@ public class HeapFile implements DbFile {
             this.tempiter = null;
         }
 
-        public Iterator<Tuple> getTuplesInPage() throws TransactionAbortedException, DbException {
+        public Iterator<Tuple> getTuplesInPage() throws TransactionAbortedException, DbException, InterruptedException {
             if (pageIndex > numpages - 1) {
                 return null;
             }

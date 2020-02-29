@@ -11,17 +11,17 @@ public abstract class Operator implements DbIterator {
 
     private static final long serialVersionUID = 1L;
 
-    public boolean hasNext() throws DbException, TransactionAbortedException {
+    public boolean hasNext() throws DbException, TransactionAbortedException, InterruptedException {
         if (!this.open)
             throw new IllegalStateException("Operator not yet open");
-        
+
         if (next == null)
             next = fetchNext();
         return next != null;
     }
 
     public Tuple next() throws DbException, TransactionAbortedException,
-            NoSuchElementException {
+        NoSuchElementException, InterruptedException {
         if (next == null) {
             next = fetchNext();
             if (next == null)
@@ -37,12 +37,12 @@ public abstract class Operator implements DbIterator {
      * Returns the next Tuple in the iterator, or null if the iteration is
      * finished. Operator uses this method to implement both <code>next</code>
      * and <code>hasNext</code>.
-     * 
+     *
      * @return the next Tuple in the iterator, or null if the iteration is
      *         finished.
      */
     protected abstract Tuple fetchNext() throws DbException,
-            TransactionAbortedException;
+        TransactionAbortedException, InterruptedException;
 
     /**
      * Closes this iterator. If overridden by a subclass, they should call
@@ -58,7 +58,7 @@ public abstract class Operator implements DbIterator {
     private boolean open = false;
     private int estimatedCardinality = 0;
 
-    public void open() throws DbException, TransactionAbortedException {
+    public void open() throws DbException, TransactionAbortedException, InterruptedException {
         this.open = true;
     }
 
@@ -74,8 +74,8 @@ public abstract class Operator implements DbIterator {
      * Set the children(child) of this operator. If the operator has only one
      * child, children[0] should be used. If the operator is a join, children[0]
      * and children[1] should be used.
-     * 
-     * 
+     *
+     *
      * @param children
      *            the DbIterators which are to be set as the children(child) of
      *            this operator
@@ -88,7 +88,7 @@ public abstract class Operator implements DbIterator {
     public abstract TupleDesc getTupleDesc();
 
     /**
-     * @return The estimated cardinality of this operator. 
+     * @return The estimated cardinality of this operator.
      * */
     public int getEstimatedCardinality() {
         return this.estimatedCardinality;

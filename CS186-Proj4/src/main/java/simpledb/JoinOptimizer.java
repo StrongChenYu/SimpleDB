@@ -215,6 +215,8 @@ public class JoinOptimizer {
                 e.printStackTrace();
             } catch (TransactionAbortedException e) {
                 e.printStackTrace();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             } finally {
                 child1.close();
                 child2.close();

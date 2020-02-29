@@ -14,7 +14,7 @@ public class SeqScan implements DbIterator {
     /**
      * Creates a sequential scan over the specified table as a part of the
      * specified transaction.
-     * 
+     *
      * @param tid
      *            The transaction this scan is running as a part of.
      * @param tableid
@@ -48,9 +48,9 @@ public class SeqScan implements DbIterator {
     public String getTableName() {
         return Database.getCatalog().getTableName(tableId);
     }
-    
+
     /**
-     * @return Return the alias of the table this operator scans. 
+     * @return Return the alias of the table this operator scans.
      * */
     public String getAlias()
     {
@@ -80,7 +80,7 @@ public class SeqScan implements DbIterator {
         this(tid, tableid, Database.getCatalog().getTableName(tableid));
     }
 
-    public void open() throws DbException, TransactionAbortedException {
+    public void open() throws DbException, TransactionAbortedException, InterruptedException {
         // some code goes here
         DbFile file = Database.getCatalog().getDbFile(tableId);
         fIterator = file.iterator(tid);
@@ -92,7 +92,7 @@ public class SeqScan implements DbIterator {
      * prefixed with the tableAlias string from the constructor. This prefix
      * becomes useful when joining tables containing a field(s) with the same
      * name.
-     * 
+     *
      * @return the TupleDesc with field names from the underlying HeapFile,
      *         prefixed with the tableAlias string from the constructor.
      */
@@ -120,7 +120,7 @@ public class SeqScan implements DbIterator {
     }
 
     public Tuple next() throws NoSuchElementException,
-            TransactionAbortedException, DbException {
+        TransactionAbortedException, DbException, InterruptedException {
         // some code goes here
         return fIterator.next();
     }
@@ -131,7 +131,7 @@ public class SeqScan implements DbIterator {
     }
 
     public void rewind() throws DbException, NoSuchElementException,
-            TransactionAbortedException {
+        TransactionAbortedException, InterruptedException {
         // some code goes here
         fIterator.rewind();
     }

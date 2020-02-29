@@ -15,7 +15,7 @@ public class Project extends Operator {
     /**
      * Constructor accepts a child operator to read tuples to apply projection
      * to and a list of fields in output tuple
-     * 
+     *
      * @param fieldList
      *            The ids of the fields child's tupleDesc to project out
      * @param typesList
@@ -27,7 +27,7 @@ public class Project extends Operator {
             DbIterator child) {
         this(fieldList,typesList.toArray(new Type[]{}),child);
     }
-    
+
     public Project(ArrayList<Integer> fieldList, Type[] types,
             DbIterator child) {
         this.child = child;
@@ -46,7 +46,7 @@ public class Project extends Operator {
     }
 
     public void open() throws DbException, NoSuchElementException,
-            TransactionAbortedException {
+        TransactionAbortedException, InterruptedException {
         child.open();
         super.open();
     }
@@ -56,18 +56,18 @@ public class Project extends Operator {
         child.close();
     }
 
-    public void rewind() throws DbException, TransactionAbortedException {
+    public void rewind() throws DbException, TransactionAbortedException, InterruptedException {
         child.rewind();
     }
 
     /**
      * Operator.fetchNext implementation. Iterates over tuples from the child
      * operator, projecting out the fields from the tuple
-     * 
+     *
      * @return The next tuple, or null if there are no more tuples
      */
     protected Tuple fetchNext() throws NoSuchElementException,
-            TransactionAbortedException, DbException {
+        TransactionAbortedException, DbException, InterruptedException {
         while (child.hasNext()) {
             Tuple t = child.next();
             Tuple newTuple = new Tuple(td);
@@ -92,5 +92,5 @@ public class Project extends Operator {
 	    this.child = children[0];
 	}
     }
-    
+
 }

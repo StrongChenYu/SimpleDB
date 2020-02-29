@@ -23,7 +23,7 @@ public class TransactionTest extends SimpleDbTestBase {
     // Wait up to 10 minutes for the test to complete
     private static final int TIMEOUT_MILLIS = 10 * 60 * 1000;
     private void validateTransactions(int threads)
-            throws DbException, TransactionAbortedException, IOException {
+        throws DbException, TransactionAbortedException, IOException, InterruptedException {
         // Create a table with a single integer value = 0
         HashMap<Integer, Integer> columnSpecification = new HashMap<Integer, Integer>();
         columnSpecification.put(0, 0);
@@ -146,7 +146,7 @@ public class TransactionTest extends SimpleDbTestBase {
                 // Store exception for the master thread to handle
                 exception = e;
             }
-            
+
             try {
                 latch.notParticipating();
             } catch (InterruptedException e) {
@@ -157,22 +157,22 @@ public class TransactionTest extends SimpleDbTestBase {
             completed = true;
         }
     }
-    
+
     private static class ModifiableCyclicBarrier {
         private CountDownLatch awaitLatch;
         private CyclicBarrier participationLatch;
         private AtomicInteger nextParticipants;
-        
+
         public ModifiableCyclicBarrier(int parties) {
             reset(parties);
         }
-        
+
         private void reset(int parties) {
             nextParticipants = new AtomicInteger(0);
             awaitLatch = new CountDownLatch(parties);
             participationLatch = new CyclicBarrier(parties, new UpdateLatch(this, nextParticipants));
         }
-        
+
         public void await() throws InterruptedException, BrokenBarrierException {
             awaitLatch.countDown();
             awaitLatch.await();
@@ -190,7 +190,7 @@ public class TransactionTest extends SimpleDbTestBase {
         private static class UpdateLatch implements Runnable {
             ModifiableCyclicBarrier latch;
             AtomicInteger nextParticipants;
-            
+
             public UpdateLatch(ModifiableCyclicBarrier latch, AtomicInteger nextParticipants) {
                 this.latch = latch;
                 this.nextParticipants = nextParticipants;
@@ -202,32 +202,32 @@ public class TransactionTest extends SimpleDbTestBase {
                 if (participants > 0) {
                     latch.reset(participants);
                 }
-            }           
+            }
         }
     }
-    
+
     @Test public void testSingleThread()
-            throws IOException, DbException, TransactionAbortedException {
+        throws IOException, DbException, TransactionAbortedException, InterruptedException {
         validateTransactions(1);
     }
 
     @Test public void testTwoThreads()
-            throws IOException, DbException, TransactionAbortedException {
+        throws IOException, DbException, TransactionAbortedException, InterruptedException {
         validateTransactions(2);
     }
 
     @Test public void testFiveThreads()
-            throws IOException, DbException, TransactionAbortedException {
+        throws IOException, DbException, TransactionAbortedException, InterruptedException {
         validateTransactions(5);
     }
-    
+
     @Test public void testTenThreads()
-    throws IOException, DbException, TransactionAbortedException {
+        throws IOException, DbException, TransactionAbortedException, InterruptedException {
         validateTransactions(10);
     }
 
     @Test public void testAllDirtyFails()
-            throws IOException, DbException, TransactionAbortedException {
+        throws IOException, DbException, TransactionAbortedException, InterruptedException {
         // Allocate a file with ~10 pages of data
         HeapFile f = SystemTestUtil.createRandomHeapFile(2, 512*10, null, null);
         Database.resetBufferPool(1);

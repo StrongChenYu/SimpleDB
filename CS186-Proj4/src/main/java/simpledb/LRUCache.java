@@ -1,16 +1,19 @@
 package simpledb;
 
 import java.util.*;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class LRUCache {
     private HashMap<PageId, Page> map;
     private LRUList lruList;
     private final int MAX_CAPACITY;
+    private HashMap<PageId, ReentrantLock> writeLocks;
 
     public LRUCache(int capacity) {
         this.map = new HashMap<PageId, Page>();
         this.lruList = new LRUList(capacity);
         this.MAX_CAPACITY = capacity;
+        this.writeLocks = new HashMap<PageId, ReentrantLock>();
     }
 
     public HashMap<PageId, Page> getMap(){
@@ -28,11 +31,11 @@ public class LRUCache {
         }
         return temp;
     }
-    
+
     public void put(PageId key, Page value) {
         lruList.add(key);
         map.put(key, value);
-        
+
         //LRU policy
         if (lruList.size() > MAX_CAPACITY) {
             PageId head = lruList.getHead();
@@ -93,7 +96,7 @@ class LRUList{
         }
 
         this.size++;
-    } 
+    }
 
     //移除节点有移除头部，移除中间
     public PageId remove(PageId pageId) throws Exception {
@@ -121,15 +124,15 @@ class LRUList{
 
                 tail.next = null;
                 headCopy.pre = null;
-                
+
             } else{
-            
+
                 headCopy.pre.next = headCopy.next;
                 headCopy.next.pre = headCopy.pre;
-    
+
                 headCopy.next = null;
                 headCopy.pre = null;
-            
+
             }
             return headCopy.pageId;
         }

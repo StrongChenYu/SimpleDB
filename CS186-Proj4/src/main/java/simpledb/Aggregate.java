@@ -19,12 +19,12 @@ public class Aggregate extends Operator {
     private TupleDesc tupDesc;
     /**
      * Constructor.
-     * 
+     *
      * Implementation hint: depending on the type of afield, you will want to
      * construct an {@link IntAggregator} or {@link StringAggregator} to help
      * you with your implementation of readNext().
-     * 
-     * 
+     *
+     *
      * @param child
      *            The DbIterator that is feeding us tuples.
      * @param afield
@@ -51,7 +51,7 @@ public class Aggregate extends Operator {
         } else {
             aggre = new StringAggregator(gfield, gType, afield, aop);
         }
-        
+
     }
 
     /**
@@ -101,7 +101,7 @@ public class Aggregate extends Operator {
     }
 
     public void open() throws NoSuchElementException, DbException,
-	    TransactionAbortedException {
+        TransactionAbortedException, InterruptedException {
             child.open();
             super.open();
             while (child.hasNext()){
@@ -118,13 +118,13 @@ public class Aggregate extends Operator {
      * the result tuple should contain one field representing the result of the
      * aggregate. Should return null if there are no more tuples.
      */
-    protected Tuple fetchNext() throws TransactionAbortedException, DbException {
+    protected Tuple fetchNext() throws TransactionAbortedException, DbException, InterruptedException {
         // some code goes here
         if (aggreResult.hasNext()) return aggreResult.next();
 	    else return null;
     }
 
-    public void rewind() throws DbException, TransactionAbortedException {
+    public void rewind() throws DbException, TransactionAbortedException, InterruptedException {
         aggreResult.rewind();
     }
 
@@ -133,7 +133,7 @@ public class Aggregate extends Operator {
      * this will have one field - the aggregate column. If there is a group by
      * field, the first field will be the group by field, and the second will be
      * the aggregate value column.
-     * 
+     *
      * The name of an aggregate column should be informative. For example:
      * "aggName(aop) (child_td.getFieldName(afield))" where aop and afield are
      * given in the constructor, and child_td is the TupleDesc of the child
@@ -141,7 +141,7 @@ public class Aggregate extends Operator {
      */
     public TupleDesc getTupleDesc() {
         if (tupDesc != null) return tupDesc;
-        
+
         Type[] tempType = null;
         String[] tempName = null;
         if (gfield==Aggregator.NO_GROUPING) {
@@ -160,7 +160,7 @@ public class Aggregate extends Operator {
             tempName[1] = aop.toString() + "(" + child.getTupleDesc().getFieldName(afield) + ")";
             tempType[1] = child.getTupleDesc().getFieldType(afield);
         }
-        
+
         return new TupleDesc(tempType, tempName);
     }
 
@@ -179,5 +179,5 @@ public class Aggregate extends Operator {
     public void setChildren(DbIterator[] children) {
         this.child = children[0];
     }
-    
+
 }

@@ -12,7 +12,7 @@ public class AbortEvictionTest extends SimpleDbTestBase {
      * This requires dirty pages to <em>not</em> get flushed to disk.
      */
     @Test public void testDoNotEvictDirtyPages()
-            throws IOException, DbException, TransactionAbortedException {
+        throws IOException, DbException, TransactionAbortedException, InterruptedException {
         // Allocate a file with ~10 pages of data
         HeapFile f = SystemTestUtil.createRandomHeapFile(2, 512*10, null, null);
         Database.resetBufferPool(2);

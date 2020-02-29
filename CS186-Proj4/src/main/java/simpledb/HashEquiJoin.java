@@ -17,7 +17,7 @@ public class HashEquiJoin extends Operator {
     /**
      * Constructor. Accepts to children to join and the predicate to join them
      * on
-     * 
+     *
      * @param p
      *            The predicate to use to join the children
      * @param child1
@@ -39,7 +39,7 @@ public class HashEquiJoin extends Operator {
     public TupleDesc getTupleDesc() {
         return comboTD;
     }
-    
+
     public String getJoinField1Name()
     {
 	return this.child1.getTupleDesc().getFieldName(this.pred.getField1());
@@ -49,11 +49,11 @@ public class HashEquiJoin extends Operator {
     {
 	return this.child2.getTupleDesc().getFieldName(this.pred.getField2());
     }
-    
+
     HashMap<Object, ArrayList<Tuple>> map = new HashMap<Object, ArrayList<Tuple>>();
     public final static int MAP_SIZE = 20000;
 
-    private boolean loadMap() throws DbException, TransactionAbortedException {
+    private boolean loadMap() throws DbException, TransactionAbortedException, InterruptedException {
         int cnt = 0;
         map.clear();
         while (child1.hasNext()) {
@@ -73,7 +73,7 @@ public class HashEquiJoin extends Operator {
 
 
     public void open() throws DbException, NoSuchElementException,
-            TransactionAbortedException {
+        TransactionAbortedException, InterruptedException {
         child1.open();
         child2.open();
         loadMap();
@@ -89,7 +89,7 @@ public class HashEquiJoin extends Operator {
         this.map.clear();
     }
 
-    public void rewind() throws DbException, TransactionAbortedException {
+    public void rewind() throws DbException, TransactionAbortedException, InterruptedException {
         child1.rewind();
         child2.rewind();
     }
@@ -110,7 +110,7 @@ public class HashEquiJoin extends Operator {
      * <p>
      * For example, if one tuple is {1,2,3} and the other tuple is {1,5,6},
      * joined on equality of the first column, then this returns {1,2,3,1,5,6}.
-     * 
+     *
      * @return The next matching tuple.
      * @see JoinPredicate#filter
      */
@@ -131,7 +131,7 @@ public class HashEquiJoin extends Operator {
     }
 
 
-    protected Tuple fetchNext() throws TransactionAbortedException, DbException {
+    protected Tuple fetchNext() throws TransactionAbortedException, DbException, InterruptedException {
         if (listIt != null && listIt.hasNext()) {
             return processList();
         }
@@ -170,6 +170,6 @@ public class HashEquiJoin extends Operator {
         this.child1 = children[0];
         this.child2 = children[1];
     }
-    
+
 
 }

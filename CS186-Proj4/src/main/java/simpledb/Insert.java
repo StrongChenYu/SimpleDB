@@ -16,7 +16,7 @@ public class Insert extends Operator {
 
     /**
      * Constructor.
-     * 
+     *
      * @param t
      *            The transaction running the insert.
      * @param child
@@ -40,7 +40,7 @@ public class Insert extends Operator {
         return new TupleDesc(new Type[]{Type.INT_TYPE});
     }
 
-    public void open() throws DbException, TransactionAbortedException {
+    public void open() throws DbException, TransactionAbortedException, InterruptedException {
         // some code goes here
         super.open();
         child.open();
@@ -52,7 +52,7 @@ public class Insert extends Operator {
         super.close();
     }
 
-    public void rewind() throws DbException, TransactionAbortedException {
+    public void rewind() throws DbException, TransactionAbortedException, InterruptedException {
         // some code goes here
         child.rewind();
     }
@@ -65,21 +65,21 @@ public class Insert extends Operator {
      * instances of BufferPool is available via Database.getBufferPool(). Note
      * that insert DOES NOT need check to see if a particular tuple is a
      * duplicate before inserting it.
-     * 
+     *
      * @return A 1-field tuple containing the number of inserted records, or
      *         null if called more than once.
      * @see Database#getBufferPool
      * @see BufferPool#insertTuple
      */
-    protected Tuple fetchNext() throws TransactionAbortedException, DbException {
+    protected Tuple fetchNext() throws TransactionAbortedException, DbException, InterruptedException {
         // some code goes here
         if (insertResult != null) return null;
-        
+
         int numTup = 0;
 
         while(child.hasNext()){
             try{
-                Database.getBufferPool().insertTuple(t, tableid, child.next());            
+                Database.getBufferPool().insertTuple(t, tableid, child.next());
                 numTup++;
             } catch(Exception e){
                 e.printStackTrace();
@@ -87,8 +87,8 @@ public class Insert extends Operator {
         }
         insertResult = new Tuple(getTupleDesc());
         Field affectf = new IntField(numTup);
-        insertResult.setField(0,affectf); 
-        
+        insertResult.setField(0,affectf);
+
         return insertResult;
     }
 

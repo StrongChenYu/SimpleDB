@@ -20,7 +20,7 @@ public class EvictionTest extends SimpleDbTestBase {
     private static final long MEMORY_LIMIT_IN_MB = 5;
     private static final int BUFFER_PAGES = 16;
 
-    @Test public void testHeapFileScanWithManyPages() throws IOException, DbException, TransactionAbortedException {
+    @Test public void testHeapFileScanWithManyPages() throws IOException, DbException, TransactionAbortedException, InterruptedException {
         System.out.println("EvictionTest creating large table");
         HeapFile f = SystemTestUtil.createRandomHeapFile(2, 1024*500, null, null);
         System.out.println("EvictionTest scanning large table");
@@ -40,7 +40,7 @@ public class EvictionTest extends SimpleDbTestBase {
     }
 
     public static void insertRow(HeapFile f, Transaction t) throws DbException,
-            TransactionAbortedException {
+        TransactionAbortedException, InterruptedException {
         // Create a row to insert
         TupleDesc twoIntColumns = Utility.getTupleDesc(2);
         Tuple value = new Tuple(twoIntColumns);
@@ -59,7 +59,7 @@ public class EvictionTest extends SimpleDbTestBase {
     }
 
     public static boolean findMagicTuple(HeapFile f, Transaction t)
-            throws DbException, TransactionAbortedException {
+        throws DbException, TransactionAbortedException, InterruptedException {
         SeqScan ss = new SeqScan(t.getId(), f.getId(), "");
         boolean found = false;
         ss.open();

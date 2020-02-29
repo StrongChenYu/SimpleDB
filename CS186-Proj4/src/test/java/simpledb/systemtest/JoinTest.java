@@ -12,7 +12,7 @@ public class JoinTest extends SimpleDbTestBase {
     private static final int COLUMNS = 2;
     public void validateJoin(int table1ColumnValue, int table1Rows, int table2ColumnValue,
             int table2Rows)
-            throws IOException, DbException, TransactionAbortedException {
+        throws IOException, DbException, TransactionAbortedException, InterruptedException {
         // Create the two tables
         HashMap<Integer, Integer> columnSpecification = new HashMap<Integer, Integer>();
         columnSpecification.put(0, table1ColumnValue);
@@ -55,17 +55,17 @@ public class JoinTest extends SimpleDbTestBase {
     }
 
     @Test public void testSingleMatch()
-            throws IOException, DbException, TransactionAbortedException {
+        throws IOException, DbException, TransactionAbortedException, InterruptedException {
         validateJoin(1, 1, 1, 1);
     }
 
     @Test public void testNoMatch()
-            throws IOException, DbException, TransactionAbortedException {
+        throws IOException, DbException, TransactionAbortedException, InterruptedException {
         validateJoin(1, 2, 2, 10);
     }
 
     @Test public void testMultipleMatch()
-            throws IOException, DbException, TransactionAbortedException {
+        throws IOException, DbException, TransactionAbortedException, InterruptedException {
         validateJoin(1, 3, 1, 3);
     }
 
